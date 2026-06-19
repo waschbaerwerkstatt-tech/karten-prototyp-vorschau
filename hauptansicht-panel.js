@@ -299,18 +299,20 @@ function standortHead(p,f){
   const miniBars=spark.map(c=>{const v=Math.min(c,CAP);return '<i class="'+(c>0?'hot':'')+'" style="height:'+(3+Math.round(v/CAP*17))+'px"></i>';}).join("");
   let n90=0;(p.developments||[]).forEach(d=>d.items.forEach(m=>{if(daysAgo(m.datum)<=90)n90++;}));
   const url=safeUrl(p.website);
-  // Icon-Meta-Zeile: Träger · Ort · Notfallstufe (+ optionale Pill-Chips — nichts versteckt).
+  // Icon-Meta-Zeile: Träger · Ort · (Website) · Notfallstufe (+ optionale Pill-Chips — nichts versteckt).
+  // Website ist ein sprechend beschriftetes Glied dieser Zeile (Domain statt Globus-Icon),
+  // sitzt platzsparend ohne eigene Zeile direkt unter dem Klinik-Namen.
   const meta=[
     `<span class="id-meta-item"><span class="material-symbols-outlined" aria-hidden="true">apartment</span>${esc(p.traeger||"Träger k. A.")}</span>`,
     `<span class="id-meta-item"><span class="material-symbols-outlined" aria-hidden="true">location_on</span>${esc(p.city)}</span>`,
-    `<span class="id-meta-item pill-chip">${esc(notfallLabel(p.notfall))}</span>`
   ];
+  if(url)meta.push(`<a class="id-meta-item id-meta-link" href="${esc(url)}" target="_blank" rel="noopener" title="Website öffnen"><span class="material-symbols-outlined" aria-hidden="true">language</span>${esc(prettyHost(url))}</a>`);
+  meta.push(`<span class="id-meta-item pill-chip">${esc(notfallLabel(p.notfall))}</span>`);
   if(p.kinder)meta.push(`<span class="id-meta-item pill-chip">Kinderklinik</span>`);
   if(p.sicherstellung)meta.push(`<span class="id-meta-item pill-chip">Sicherstellungsauftrag</span>`);
   return `
     <div class="id-headrow">
       <button class="back" type="button" data-action="clear-selection"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>${state.frozen?"Zurück zum Ausschnitt":"Alle Artikel"}</button>
-      ${url?`<a class="id-website-icon" href="${esc(url)}" target="_blank" rel="noopener" title="Website öffnen" aria-label="Website öffnen"><span class="material-symbols-outlined" aria-hidden="true">language</span></a>`:""}
     </div>
     <div class="eyebrow">${esc(p.region)}</div>
     <h2 class="id-name">${esc(p.name)}</h2>

@@ -246,6 +246,8 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
 .modal{width:min(420px,100%);background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;
   box-shadow:var(--shadow);padding:22px 22px 20px;animation:modal-in .2s ease}
 @keyframes modal-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+/* Greifbalken: nur in der mobilen Bottom-Sheet-Darstellung sichtbar (unten gesetzt). */
+.modal-grip{display:none}
 .modal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
 .modal-top h3{font-size:17px;font-weight:800;letter-spacing:-.01em;font-family:'Manrope'}
 .modal-close{width:32px;height:32px;border-radius:999px;border:1px solid var(--line);background:var(--card);
@@ -254,6 +256,12 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
 .modal-close .material-symbols-outlined{font-size:19px}
 .modal-body{font-size:13px;color:var(--text-dim);line-height:1.6}
 .modal-body p{margin:0 0 10px}
+/* Kurzdefinition „Artikel / Artikelkette“ als zwei Chips über dem Fließtext. */
+.def-grid{display:flex;gap:9px;margin:0 0 13px}
+.def{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);border-radius:13px;padding:11px 12px}
+.def .material-symbols-outlined{font-size:18px;color:var(--accent)}
+.def b{display:block;font-family:'Manrope';font-size:12.5px;font-weight:700;color:var(--text);margin-top:6px}
+.def small{display:block;font-size:11px;color:var(--text-faint);margin-top:3px;line-height:1.4}
 .modal-note{margin-top:14px!important;margin-bottom:0!important;font-size:11px;color:var(--text-faint);
   border-top:1px solid var(--line);padding-top:10px}
 /* Panel-Fußnote (von .modal-note entkoppelt): kein Listenkontext, daher ohne !important und ohne Rahmen */
@@ -349,28 +357,29 @@ button.loc-chip{border:0;background:none;padding:0;margin:0;font-family:inherit;
 .kl-rest{font-size:11px;color:var(--text-faint);padding:6px 10px 12px}
 
 /* ============ Standort-Identität (Variante 1 · verdichtet, alles sichtbar) ============ */
-/* Issue #256 Runde 8: Website wird Icon-Button, Träger·Ort·Notfallstufe als eine
-   umbrechende Icon-Meta-Zeile, Kennzahlen als kompakte Icon-Chip-Zeile. Gilt in JEDER
-   Standortsicht (Desktop-Panel und mobiles Bottom-Sheet), nicht nur auf Mobile. */
+/* Issue #256 Runde 8: Träger·Ort·Notfallstufe als eine umbrechende Icon-Meta-Zeile,
+   Kennzahlen als kompakte Icon-Chip-Zeile. Die Website ist ein sprechend beschriftetes
+   Glied der Meta-Zeile (Domain statt Globus-Icon, .id-meta-link) — platzsparend ohne
+   eigene Zeile direkt unter dem Namen. Gilt in JEDER Standortsicht (Desktop-Panel und
+   mobiles Bottom-Sheet), nicht nur auf Mobile. */
 .id-name{font-size:22px;font-weight:800;letter-spacing:-.025em;line-height:1.12;margin:5px 0 0}
 .pill{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-strong);
   background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 
-/* Kopfzeile: Back-Button links, Website-Icon rechts. padding-right raeumt den
-   persistenten Hilfe-Button (.panel-help, top-right), damit nichts ueberlappt. */
+/* Kopfzeile: nur Back-Button (links). padding-right raeumt den persistenten
+   Hilfe-Button (.panel-help, top-right), damit nichts ueberlappt. */
 .id-headrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:30px}
-.id-website-icon{display:inline-flex;align-items:center;justify-content:center;
-  width:28px;height:28px;border-radius:9px;border:1px solid var(--line);
-  background:var(--chip);color:var(--accent);text-decoration:none;flex:none;transition:.13s}
-.id-website-icon:hover{border-color:var(--accent);background:var(--chip-2)}
-.id-website-icon .material-symbols-outlined{font-size:16px}
 
-/* Icon-Meta-Zeile: Träger · Ort · Notfallstufe (+ optionale Pill-Chips). */
+/* Icon-Meta-Zeile: Träger · Ort · Website · Notfallstufe (+ optionale Pill-Chips). */
 .id-meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px 11px;margin-top:7px}
 .id-meta-item{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text-dim);font-weight:500}
 .id-meta-item .material-symbols-outlined{font-size:15px;color:var(--text-faint)}
 .id-meta-item.pill-chip{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:var(--accent-strong);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+/* Website-Glied der Meta-Zeile: Domain als sprechender Link, Akzentfarbe, Unterstrich bei Hover. */
+.id-meta-link{color:var(--accent);text-decoration:none;font-weight:600}
+.id-meta-link .material-symbols-outlined{color:var(--accent)}
+.id-meta-link:hover{text-decoration:underline}
 
 .section{margin-top:14px}
 .section>.eyebrow{margin-bottom:8px;display:block}
@@ -568,4 +577,14 @@ a.st-src:hover .st-ext{color:var(--accent)}
     width:38px;height:4px;border-radius:999px;background:var(--line-strong)}
   /* Kopf bis zur ersten Trennlinie (.id-stat-row) ziehbar; Kennzahlen-Zeile selbst nicht. */
   .panel-head{padding-top:6px;cursor:grab;touch-action:none}
+
+  /* Hilfe-Popup -> Bottom-Sheet (Variante „Kurz & Details“, übernommen 2026-06-19):
+     kommt aus derselben Richtung wie das Panel, bleibt höhenbegrenzt und lässt Karte/Panel
+     oben sichtbar, statt als zentriertes Fast-Vollbild zu erscheinen. */
+  .modal-backdrop{align-items:flex-end;padding:0}
+  .modal{width:100%;max-width:none;border-radius:22px 22px 0 0;padding:4px 18px 22px;
+    max-height:86vh;overflow-y:auto;animation:sheet-up .28s var(--ease)}
+  .modal-grip{display:block;width:38px;height:4px;border-radius:999px;background:var(--line-strong);margin:8px auto 10px}
+  .def-grid{gap:8px}
 }
+@keyframes sheet-up{from{transform:translateY(46px);opacity:.4}to{transform:none;opacity:1}}

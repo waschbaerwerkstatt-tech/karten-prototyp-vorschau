@@ -96,6 +96,19 @@ const fmtDate=d=>new Date(d).toLocaleDateString("de-DE",{day:"2-digit",month:"sh
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 /* Nur http(s)-Links ausspielen; alles andere (z. B. javascript:) als kein-Link behandeln. */
 const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:"";
+/* Sprechende Domain fuer die Beschriftung: NUR die registrierbare Domain — ohne
+   Subdomain (www., sb., …) und ohne Pfad/Query/Anker. Auch bei Deep-Links wird nur die
+   nackte Domain gezeigt; der href bleibt die volle URL. */
+const prettyHost=u=>{
+  const host=String(u||"").replace(/^https?:\/\//i,"").replace(/[\/?#].*$/,"").toLowerCase();
+  const parts=host.split(".").filter(Boolean);
+  if(parts.length<=2)return parts.join(".");
+  // Zusammengesetzte Laender-TLDs (z. B. co.uk) behalten drei Labels, sonst zwei.
+  const SECOND_LEVEL=new Set(["co","com","org","gov","ac","net"]);
+  const last=parts[parts.length-1],penult=parts[parts.length-2];
+  const keep=(last.length===2 && SECOND_LEVEL.has(penult))?3:2;
+  return parts.slice(-keep).join(".");
+};
 function daysAgo(iso){return Math.floor((TODAY-new Date(iso))/86400000);}
 function inRange(iso){return state.rangeDays===0 || daysAgo(iso)<=state.rangeDays;}
 function topicMatch(topics){return state.topics.size===0 || (topics||[]).some(t=>state.topics.has(t));}
