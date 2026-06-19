@@ -1,0 +1,571 @@
+/* ============ Theme-Tokens ============ */
+:root{
+  --bg:#0e0f12;
+  --panel:rgba(22,23,28,0.80);
+  --panel-solid:#16171c;
+  --card:rgba(255,255,255,0.025);
+  --chip:#1d1e24;
+  --chip-2:#23242b;
+  --line:rgba(255,255,255,0.08);
+  --line-strong:rgba(255,255,255,0.14);
+  --text:#e9e9ef;
+  --text-dim:#a7a8b2;
+  --text-faint:#6f707b;
+  --accent:#8ab0d9;
+  --accent-strong:#a9c6e8;
+  --accent-ink:#0b1622;
+  --glow:rgba(138,176,217,0.22);
+  --shadow:0 24px 48px -14px rgba(0,0,0,0.55);
+  --topbar-grad:linear-gradient(to bottom,rgba(14,15,18,0.92),rgba(14,15,18,0));
+  --thumb-shadow:rgba(0,0,0,.22);
+  --scrim:rgba(6,7,10,0.55);
+  --subtab-bg:rgba(127,127,127,.10);
+  /* themeunabhaengige Tokens (von .theme-hell nicht ueberschrieben) */
+  --blur-float:16px;
+  --blur-panel:26px;
+  --ease:cubic-bezier(.4,.05,.2,1);
+}
+html.theme-hell{
+  --bg:#eef0f2;
+  --panel:rgba(255,255,255,0.88);
+  --panel-solid:#ffffff;
+  --card:rgba(15,20,28,0.02);
+  --chip:#f1f2f5;
+  --chip-2:#e6e8ee;
+  --line:rgba(15,20,28,0.10);
+  --line-strong:rgba(15,20,28,0.16);
+  --text:#1b1f27;
+  --text-dim:#5b616d;
+  --text-faint:#9aa0ab;
+  --accent:#2f6fb0;
+  --accent-strong:#255c97;
+  --accent-ink:#ffffff;
+  --glow:rgba(47,111,176,0.14);
+  --shadow:0 18px 40px -18px rgba(20,30,45,0.30);
+  --topbar-grad:linear-gradient(to bottom,rgba(238,240,242,0.92),rgba(238,240,242,0));
+  --thumb-shadow:rgba(20,30,45,.18);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--text);
+  background:var(--bg);overflow:hidden;
+  transition:background .4s ease,color .4s ease;
+}
+h1,h2,h3,h4{font-family:'Manrope',sans-serif;margin:0}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'opsz' 22}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text-faint)}
+/* Visuell versteckt, aber fuer Screenreader vorhanden (HX-08: dokumentweites h1). */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ============ Karte ============ */
+/* Reine Landmark-Klammer (HX-04): alle Kinder sind position:fixed, daher kein
+   Layout-Effekt; margin/padding nullen, damit auch UA-Defaults nichts verschieben. */
+main{margin:0;padding:0;display:block}
+#map{position:fixed;inset:0;z-index:0}
+.maplibregl-ctrl-bottom-right{margin-bottom:6px}
+.maplibregl-ctrl-attrib{font-size:10px;background:transparent!important}
+html.theme-dunkel .maplibregl-ctrl-attrib a{color:var(--text-faint)}
+
+/* ============ Header ============ */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:40;height:64px;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  padding:0 22px;background:var(--topbar-grad);pointer-events:none;
+}
+header>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Manrope';font-weight:800;
+  font-size:18px;letter-spacing:-.02em;white-space:nowrap}
+button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
+.brand .logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 1px var(--line-strong)}
+.brand .logo .material-symbols-outlined{font-size:19px}
+/* ============ Ansichten-Menü ============ */
+/* Vereinheitlichte Lösung (Issue #256, Folgekommentar 2026-06-17): EIN Overlay-Flyout
+   für alle Breiten. Ruhezustand Desktop = aktive Ansicht „Nachrichten" als beschriftete
+   Accent-Pille + die 3 anderen Ansichten als reine Icon-Links daneben (direkt klickbar,
+   wichtig für Touch). Hover/Fokus der Navgroup ODER Klick auf die Brand-Pille öffnet das
+   Overlay-Flyout (legt sich über die Karte, kein Breitenwachstum der Leiste). Auf schmalen
+   Schirmen verdrängt die zentrierte Suche progressiv: erst das Theme-Label, dann Wortmarke
+   + Icon-Links (die sich ins Flyout zurückfalten). Mobile = identisches Flyout per Tap. */
+.navgroup{justify-self:start;display:flex;align-items:center;gap:10px;min-width:0;position:relative}
+/* Caret: blendet das Flyout-Verhalten an der Brand-Pille an; auf Desktop immer sichtbar,
+   damit der Ruhezustand als aufklappbar lesbar ist. */
+.brand .brand-caret{display:inline-flex;align-items:center;font-size:18px;color:var(--text-faint);margin-left:-2px;transition:transform .2s}
+/* Brand-Pille = aktive Ansicht „Nachrichten" im Accent-Stil (wie früher .navlink.on). */
+.viewmenu{position:relative;display:flex;align-items:center}
+.viewmenu .brand{height:40px;padding:0 13px 0 4px;border-radius:999px;border:1px solid transparent;
+  background:var(--accent);color:var(--accent-ink);gap:8px}
+.viewmenu .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--accent-ink);color:var(--accent)}
+.viewmenu .brand .logo .material-symbols-outlined{font-size:17px}
+.viewmenu .brand .brand-label{font-size:12.5px;letter-spacing:-.01em}
+.viewmenu .brand .brand-caret{color:var(--accent-ink);opacity:.7}
+.viewmenu .brand:focus-visible{outline:2px solid var(--accent-strong);outline-offset:2px}
+/* Icon-Leiste: die 3 anderen Ansichten als reine Icon-Links (ohne Text), direkt anklickbar. */
+.viewseg{display:inline-flex;align-items:center;height:40px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);backdrop-filter:blur(var(--blur-float));box-shadow:var(--shadow);padding:3px;gap:2px;flex:none}
+.viewseg .navlink{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;width:36px;
+  padding:0;border-radius:999px;color:var(--text-dim);font-family:'Inter';font-size:12.5px;font-weight:600;
+  white-space:nowrap;text-decoration:none;transition:color .2s,background .2s}
+.viewseg .navlink .material-symbols-outlined{font-size:18px}
+.viewseg .navlink .nl-label{display:none}   /* Ruhezustand: nur Icons; Klartext steckt im Flyout */
+.viewseg .navlink:hover{color:var(--text);background:var(--chip)}
+.viewseg .navlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Overlay-Flyout mit den vier Ansichten (Name + Kurzbeschreibung). Liegt absolut über der
+   Karte und beeinflusst das Header-Layout NICHT (kein Umfließen, keine Breitenänderung). */
+.viewflyout{position:absolute;top:46px;left:0;z-index:50;min-width:248px;background:var(--panel-solid);
+  border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:7px;
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .16s,transform .16s,visibility .16s}
+/* Öffnen: Hover/Fokus der gesamten Navgroup (Desktop) ODER Klick-Toggle (.open, Touch/Tastatur). */
+.navgroup:hover .viewflyout,
+.navgroup:focus-within .viewflyout,
+.viewmenu.open .viewflyout{opacity:1;visibility:visible;transform:translateY(0)}
+.navgroup:hover .brand .brand-caret,
+.navgroup:focus-within .brand .brand-caret,
+.viewmenu.open .brand .brand-caret{transform:rotate(180deg)}
+.viewflyout .vf-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-faint);padding:7px 10px 5px}
+.viewflyout .vf-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;color:var(--text);
+  font-family:'Inter';font-size:13px;font-weight:600;text-decoration:none;transition:background .15s}
+.viewflyout .vf-item .material-symbols-outlined{font-size:19px;color:var(--text-dim)}
+.viewflyout .vf-item:hover{background:var(--chip)}
+.viewflyout .vf-item .sub{font-size:11px;font-weight:500;color:var(--text-faint);display:block;margin-top:1px}
+.viewflyout .vf-item.on{color:var(--accent-strong)}
+.viewflyout .vf-item.on .material-symbols-outlined{color:var(--accent)}
+.viewflyout .vf-item .check{margin-left:auto;font-size:17px;color:var(--accent)}
+.viewflyout .vf-item .soon{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-faint);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:2px 7px}
+
+/* Suche immer EXAKT in der Viewport-Mitte (unabhängig von den Breiten links/rechts):
+   fixiert auf 50% und per translateX(-50%) zentriert, statt über die Grid-Mittelspalte.
+   Eigener z-index unter dem Flyout (50), aber über der Karte; die Grid-Mittelspalte (1fr)
+   bleibt als reiner Platzhalter leer. */
+.search{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:41;
+  display:flex;align-items:center;gap:9px;width:min(420px,42vw);height:40px;
+  background:var(--panel);backdrop-filter:blur(var(--blur-float));border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;box-shadow:var(--shadow);pointer-events:auto}
+.search .material-symbols-outlined{color:var(--accent);font-size:19px;flex:none}
+.search input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--text);
+  font-size:13.5px;font-family:'Inter';text-overflow:ellipsis}
+.search input::placeholder{color:var(--text-faint)}
+.search kbd{font-size:10px;font-weight:600;color:var(--text-faint);background:var(--chip);
+  border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+
+.actions{justify-self:end;display:flex;align-items:center;gap:8px}
+.icon-btn{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);backdrop-filter:blur(var(--blur-float));color:var(--text-dim);cursor:pointer;
+  display:grid;place-items:center;transition:.15s;text-decoration:none}
+.icon-btn:hover{color:var(--text);border-color:var(--line-strong)}
+.icon-btn .material-symbols-outlined{font-size:19px}
+.theme-toggle{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+  color:var(--text);cursor:pointer;font-family:'Inter';font-weight:600;font-size:12.5px;transition:.15s}
+.theme-toggle:hover{border-color:var(--line-strong)}
+.theme-toggle .material-symbols-outlined{font-size:18px;color:var(--accent)}
+
+/* ============ Progressive Verdrängung (Desktop) ============
+   Damit die fix-zentrierte Suche nie mit Header-Inhalten kollidiert, schrumpfen die
+   Header-Enden in zwei Stufen, bevor die ≤768px-Vollmobil-Regeln greifen.
+   Stufe 1 (≤1280px): Theme-Toggle verliert sein Text-Label und wird reiner Icon-Button.
+   Stufe 2 (≤1040px): Wortmarke aus, die 3 Icon-Links falten sich ins Flyout zurück —
+   die Navgroup zeigt nur noch Brand-Logo + Caret (öffnet alle 4 Ansichten im Flyout). */
+@media (max-width:1280px){
+  .theme-toggle{width:40px;padding:0;justify-content:center;gap:0}
+  #themeLabel{display:none}
+}
+@media (max-width:1040px){
+  .viewmenu .brand{padding:0 9px 0 4px}
+  .viewmenu .brand .brand-label{display:none}   /* Wortmarke aus, Brand wird Logo+Caret */
+  .viewseg{display:none}                          /* Icon-Links zurück ins Flyout */
+}
+
+/* ============ Filterleiste ============ */
+.filterbar{position:fixed;top:74px;left:22px;right:440px;z-index:30;
+  display:flex;align-items:center;gap:8px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:none}
+.filterbar::-webkit-scrollbar{display:none}
+.select{position:relative;display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;
+  border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+  color:var(--text);font-size:12.5px;font-weight:600;white-space:nowrap;box-shadow:var(--shadow)}
+.select .material-symbols-outlined{font-size:17px;color:var(--text-dim)}
+.select select{appearance:none;background:none;border:none;outline:none;color:var(--text);
+  font-family:'Inter';font-weight:600;font-size:12.5px;cursor:pointer}
+.divider{width:1px;height:20px;background:var(--line-strong);margin:0 2px;flex:none}
+.chip{height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);backdrop-filter:blur(var(--blur-float));color:var(--text-dim);font-size:12.5px;
+  font-weight:600;white-space:nowrap;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+.chip:hover{color:var(--text);border-color:var(--line-strong)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+#topicChips{display:flex;gap:8px}
+.filter-trigger{display:none}
+.count-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--accent);
+  color:var(--accent-ink);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.count-badge.is-empty{display:none}
+
+/* Zeitraum-Schieberegler */
+.range{position:relative;display:inline-flex;align-items:center;height:34px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));padding:3px 3px 3px 4px;
+  box-shadow:var(--shadow);flex:none}
+.range .lead{display:grid;place-items:center;padding:0 5px 0 6px;color:var(--text-dim)}
+.range .lead .material-symbols-outlined{font-size:17px}
+.range .track{position:relative;display:inline-flex;align-items:center}
+.range .thumb{position:absolute;z-index:0;top:0;bottom:0;left:0;width:0;border-radius:999px;
+  background:var(--accent);box-shadow:0 2px 7px var(--thumb-shadow);
+  transition:left .26s var(--ease),width .26s var(--ease)}
+.range .step{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;height:28px;
+  padding:0 15px;border-radius:999px;color:var(--text-dim);font-size:12.5px;font-weight:600;cursor:pointer;
+  white-space:nowrap;transition:color .22s}
+.range .step:hover{color:var(--text)}
+.range .step.on,.range .step.on:hover{color:var(--accent-ink)}
+
+/* Top-Filter (Segmented "Alle | Top") — so schlicht wie der Theme-Schalter */
+.topseg{display:inline-flex;align-items:center;height:34px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel);backdrop-filter:blur(var(--blur-float));box-shadow:var(--shadow);padding:3px;gap:2px;flex:none}
+.topseg-opt{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 14px;border:none;border-radius:999px;
+  background:none;color:var(--text-dim);font-family:'Inter';font-weight:600;font-size:12.5px;cursor:pointer;
+  white-space:nowrap;transition:color .2s,background .2s}
+.topseg-opt .material-symbols-outlined{font-size:16px}
+.topseg-opt:hover{color:var(--text)}
+.topseg-opt.on,.topseg-opt.on:hover{background:var(--accent);color:var(--accent-ink)}
+
+/* Top-Schalter mobil (Variante 1·B): Icon-Pille „★ Top", kippt den Zustand. Nur auf Mobile sichtbar. */
+.top-pill{display:none;align-items:center;gap:6px;height:34px;padding:0 13px 0 11px;flex:none;
+  border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+  box-shadow:var(--shadow);color:var(--text-dim);font-family:'Inter';font-weight:600;font-size:12.5px;
+  cursor:pointer;white-space:nowrap;transition:color .2s,background .2s,border-color .2s}
+.top-pill .material-symbols-outlined{font-size:17px}
+.top-pill:hover{color:var(--text);border-color:var(--line-strong)}
+.top-pill.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.top-pill.on .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
+
+/* ============ Info-Popup (Erklärung Entwicklung) ============ */
+.modal-backdrop{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  padding:24px;background:var(--scrim);backdrop-filter:blur(4px)}
+.modal-backdrop.open{display:flex}
+.modal{width:min(420px,100%);background:var(--panel-solid);border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow);padding:22px 22px 20px;animation:modal-in .2s ease}
+@keyframes modal-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.modal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.modal-top h3{font-size:17px;font-weight:800;letter-spacing:-.01em;font-family:'Manrope'}
+.modal-close{width:32px;height:32px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+  color:var(--text-dim);cursor:pointer;display:grid;place-items:center;flex:none;transition:.15s}
+.modal-close:hover{color:var(--text);border-color:var(--line-strong)}
+.modal-close .material-symbols-outlined{font-size:19px}
+.modal-body{font-size:13px;color:var(--text-dim);line-height:1.6}
+.modal-body p{margin:0 0 10px}
+.modal-note{margin-top:14px!important;margin-bottom:0!important;font-size:11px;color:var(--text-faint);
+  border-top:1px solid var(--line);padding-top:10px}
+/* Panel-Fußnote (von .modal-note entkoppelt): kein Listenkontext, daher ohne !important und ohne Rahmen */
+.proto-note{margin-top:14px;margin-bottom:0;font-size:11px;color:var(--text-faint);padding-top:14px}
+
+/* ============ Panel ============ */
+.panel{position:fixed;right:20px;top:84px;bottom:20px;width:404px;z-index:30;
+  display:flex;flex-direction:column;border-radius:24px;overflow:hidden;
+  background:var(--panel);backdrop-filter:blur(var(--blur-panel));border:1px solid var(--line);box-shadow:var(--shadow)}
+.panel-head{padding:16px 22px 12px;border-bottom:1px solid var(--line);flex:none}
+/* Persistenter Hilfe-Button: liegt als eigenes Element (nicht in #panelHead, das bei
+   jedem Render ueberschrieben wird), absolut oben rechts ueber dem Panel-Kopf. So bleibt er
+   in allen drei Zustaenden (Feed / Gewaehlter Ausschnitt / Standort) identisch verankert. */
+.panel-help{position:absolute;top:14px;right:18px;z-index:5;width:24px;height:24px;border-radius:999px;
+  border:1px solid var(--line);background:var(--card);color:var(--text-faint);cursor:pointer;
+  display:grid;place-items:center;font-family:'Manrope';font-weight:700;font-size:13px;line-height:1;transition:.15s}
+.panel-help:hover{color:var(--accent);border-color:var(--line-strong)}
+.panel-scroll{flex:1;overflow-y:auto;padding:6px 14px 18px}
+.panel-scroll::-webkit-scrollbar{width:8px}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}
+
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--text-dim);background:none;border:none;
+  cursor:pointer;font-family:'Inter';font-weight:600;font-size:12px;padding:0 0 10px}
+.back:hover{color:var(--text)}
+.back .material-symbols-outlined{font-size:17px}
+
+.feed-title{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:2px 0 3px}
+.feed-sub{font-size:12.5px;color:var(--text-dim)}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:999px;background:var(--accent);
+  margin-right:7px;box-shadow:0 0 0 4px var(--glow)}
+
+/* Feed-Band-Header (zweistufig: Top-Entwicklungen / Weitere Meldungen). */
+.feed-band{display:flex;align-items:center;gap:8px;margin:10px 4px 6px;font-size:10px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint)}
+.feed-band:first-child{margin-top:4px}
+.feed-band .material-symbols-outlined{font-size:15px;color:var(--accent)}
+.feed-band .fb-n{margin-left:auto;font-size:10px;letter-spacing:.04em;color:var(--text-faint);
+  text-transform:none;font-weight:600}
+.feed-band.second{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+
+/* Cluster-Zaehlzeile kompakt (umbruchsicher, mobile-tauglich). */
+.cluster-counts[data-countvar="kompakt"]{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px;
+  font-size:12px;color:var(--text-dim);padding-left:2px}
+.cluster-counts[data-countvar="kompakt"] b{font-family:'Manrope';font-weight:800;color:var(--text)}
+.cluster-counts[data-countvar="kompakt"] .cc-dot{color:var(--text-faint)}
+
+/* Ortsmarke & Themen-Tag (Story-/Feed-Karten) */
+.loc-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--accent-strong);
+  max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Einzelklinik-Ortsmarke ist ein <button> (tastaturfokussierbar -> selectLocation);
+   UA-Button-Defaults nullen, font-family erben, damit es optisch wie das fruehere <div> bleibt. */
+button.loc-chip{border:0;background:none;padding:0;margin:0;font-family:inherit;cursor:pointer}
+.loc-chip .material-symbols-outlined{font-size:15px}
+.topic-tag{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-dim);background:var(--chip);border:1px solid var(--line);border-radius:999px;
+  padding:3px 9px;white-space:nowrap;flex:none}
+.empty{padding:30px 14px;text-align:center;color:var(--text-faint);font-size:13px}
+
+/* ============ Bereichs-Feed (eingefrorener Cluster) ============ */
+/* In-Panel-Umschalter: Endnutzer wählt zwischen gebündeltem Feed und Klinikliste */
+.subtabs{display:flex;gap:4px;background:var(--subtab-bg);border:1px solid var(--line);border-radius:11px;
+  padding:3px;margin:2px 4px 12px}
+.subtabs button{flex:1;border:0;background:transparent;color:var(--text-dim);font:inherit;font-size:12.5px;
+  font-weight:600;padding:8px 4px;border-radius:8px;cursor:pointer;transition:.15s}
+.subtabs button:hover{color:var(--text)}
+.subtabs button.on{background:var(--accent);color:var(--accent-ink)}
+/* Bereichs-Chip im Panel-Kopf */
+/* margin-right reserviert Platz fuer den persistenten Hilfe-Button (.panel-help, top-right),
+   damit der Schliessen-/Zoom-Button der Chip nicht unter dem "?" liegt. */
+.area-chip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line-strong);
+  border-radius:13px;padding:8px 8px 8px 12px;margin:2px 28px 10px 0}
+.area-chip .ac-ico{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex:none;
+  background:var(--accent);color:var(--accent-ink)}
+.area-chip .ac-ico .material-symbols-outlined{font-size:16px}
+.area-chip .ac-txt{flex:1;min-width:0}
+.area-chip .ac-txt b{font-size:12.5px;font-weight:700;display:block;line-height:1.2}
+.area-chip .ac-txt small{font-size:11px;color:var(--text-faint)}
+.ac-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:transparent;
+  color:var(--text-dim);cursor:pointer;display:grid;place-items:center;flex:none;transition:.15s}
+.ac-btn:hover{color:var(--text);border-color:var(--line-strong);background:var(--card)}
+.ac-btn .material-symbols-outlined{font-size:17px}
+/* Klinikliste im Bereich */
+.kl-list{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.kl-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid transparent;
+  background:none;cursor:pointer;padding:9px 10px;border-radius:11px;transition:.13s;color:inherit;font:inherit}
+.kl-row:hover{background:var(--card);border-color:var(--line)}
+.kl-row .kl-name{flex:1;min-width:0;overflow:hidden}
+.kl-row .kl-name b{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kl-row .kl-name small{font-size:11px;color:var(--text-faint)}
+.kl-row .kl-n{font-size:11px;font-weight:700;color:var(--accent-strong);background:var(--chip);
+  border:1px solid var(--line);border-radius:999px;padding:2px 8px;flex:none}
+.kl-row .material-symbols-outlined{font-size:16px;color:var(--text-faint);flex:none}
+.kl-rest{font-size:11px;color:var(--text-faint);padding:6px 10px 12px}
+
+/* ============ Standort-Identität (Variante 1 · verdichtet, alles sichtbar) ============ */
+/* Issue #256 Runde 8: Website wird Icon-Button, Träger·Ort·Notfallstufe als eine
+   umbrechende Icon-Meta-Zeile, Kennzahlen als kompakte Icon-Chip-Zeile. Gilt in JEDER
+   Standortsicht (Desktop-Panel und mobiles Bottom-Sheet), nicht nur auf Mobile. */
+.id-name{font-size:22px;font-weight:800;letter-spacing:-.025em;line-height:1.12;margin:5px 0 0}
+.pill{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-strong);
+  background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+
+/* Kopfzeile: Back-Button links, Website-Icon rechts. padding-right raeumt den
+   persistenten Hilfe-Button (.panel-help, top-right), damit nichts ueberlappt. */
+.id-headrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:30px}
+.id-website-icon{display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:9px;border:1px solid var(--line);
+  background:var(--chip);color:var(--accent);text-decoration:none;flex:none;transition:.13s}
+.id-website-icon:hover{border-color:var(--accent);background:var(--chip-2)}
+.id-website-icon .material-symbols-outlined{font-size:16px}
+
+/* Icon-Meta-Zeile: Träger · Ort · Notfallstufe (+ optionale Pill-Chips). */
+.id-meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px 11px;margin-top:7px}
+.id-meta-item{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text-dim);font-weight:500}
+.id-meta-item .material-symbols-outlined{font-size:15px;color:var(--text-faint)}
+.id-meta-item.pill-chip{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--accent-strong);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+
+.section{margin-top:14px}
+.section>.eyebrow{margin-bottom:8px;display:block}
+/* HX-03 — statische Inline-Styles aus JS-Templates in Modifier ueberfuehrt (Optik identisch). */
+.section.topics-at-loc{margin-top:8px}
+.section .eyebrow.tight{margin-bottom:7px}
+
+/* News-Aktivität */
+.activity{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+.activity .big{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.activity .big span{font-size:13px;font-weight:600;color:var(--text-dim);margin-left:7px;letter-spacing:0}
+.activity .sub{font-size:11.5px;color:var(--text-faint);margin-top:5px}
+.spark{display:flex;align-items:flex-end;gap:3px;height:42px}
+.spark i{width:6px;border-radius:3px;background:var(--accent);opacity:.35;display:block}
+.spark i.hot{opacity:1}
+
+/* Themen-Chips im Panel */
+.topic-row{display:flex;flex-wrap:wrap;gap:6px}
+.topic-row .chip{height:30px;padding:0 11px;font-size:11.5px;box-shadow:none;backdrop-filter:none;
+  background:var(--chip)}
+.topic-row .chip.on{background:var(--accent);color:var(--accent-ink)}
+
+/* Label-Zähler auf Themen-Chips (Variante B2 „Dezent") */
+.chip .count-soft{font-size:11px;font-weight:700;color:var(--text-faint);font-family:'Manrope';
+  font-variant-numeric:tabular-nums;margin-left:6px}
+.chip.on .count-soft{color:var(--accent-ink);opacity:.7}
+.topic-row.tight .chip .count-soft{font-size:10.5px;margin-left:5px}
+
+/* Stammdaten-Grid */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+.kpi .k{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+.kpi .v{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-top:4px;font-family:'Manrope'}
+.kpi .v.muted{color:var(--text-faint);font-style:italic;font-weight:600;font-size:13px}
+
+.timeline-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.timeline-head .eyebrow{margin:0}
+.timeline-head .count{font-size:11px;color:var(--text-faint)}
+
+/* ============ Karten-Cluster ============ */
+/* Pins sind native MapLibre-Circle/Symbol-Layer (kein DOM-Marker, kein Marker-Swim).
+   Encoding (Preset 1) wird in addClinicLayers() gesetzt. */
+
+/* ============ Standort: Kennzahlen-Chip-Zeile (Variante 1) ============ */
+.id-stat-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:11px;
+  padding-top:11px;border-top:1px solid var(--line)}
+.id-stat-chip{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 10px;
+  border-radius:999px;border:1px solid var(--line);background:var(--chip);
+  font-size:11.5px;font-weight:600;color:var(--text-dim)}
+.id-stat-chip .material-symbols-outlined{font-size:14px;color:var(--text-faint)}
+.id-stat-chip b{color:var(--text);font-weight:700;font-family:'Manrope'}
+.id-stat-chip.muted b{color:var(--text-faint);font-style:italic;font-weight:600}
+.id-activity{display:flex;align-items:center;gap:7px;margin-left:auto}
+.id-act-cap{font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap;text-align:right}
+.id-act-cap b{color:var(--text);font-weight:800;font-family:'Manrope'}
+.mini-spark{display:flex;align-items:flex-end;gap:2px;height:20px}
+.mini-spark i{width:4px;border-radius:2px;background:var(--accent);opacity:.4;display:block}
+.mini-spark i.hot{opacity:1}
+
+/* ============ Standort: Entwicklungen (Variante F1 · Karussell) ============ */
+.topic-row.tight{gap:5px}
+.topic-row.tight .chip{height:27px;padding:0 10px;font-size:11px}
+.story{margin-top:10px;border:1px solid var(--line);border-radius:16px;background:var(--card);padding:12px 13px 10px;overflow:hidden}
+.story:first-of-type{margin-top:6px}
+.story-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+/* Kompakter Story-Kopf: Ort/Verbund links, Thema(s) rechts in EINER Zeile (kein Meta-Block). */
+.story-head .loc-chip{flex:1;min-width:0;max-width:none}
+.story-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;flex:none;max-width:62%}
+.story .carousel{margin-top:10px}
+.story-head .topic-tag{display:inline-block}
+.st-date{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent-strong)}
+.st-title{font-size:14px;font-weight:600;line-height:1.3;margin:5px 0 5px;color:var(--text)}
+.st-link{color:inherit;text-decoration:none}
+.st-link:hover{color:var(--accent-strong);text-decoration:underline;text-underline-offset:2px}
+.st-ext{font-size:13px;vertical-align:-2px;margin-left:4px;color:var(--text-faint)}
+.st-link:hover .st-ext{color:var(--accent)}
+.st-teaser{font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:6px}
+.st-src{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text-faint);text-decoration:none;transition:.15s}
+.st-src .material-symbols-outlined{font-size:14px}
+a.st-src:hover{color:var(--accent-strong)}
+a.st-src .st-ext{font-size:12px;margin-left:2px;color:var(--text-faint)}
+a.st-src:hover .st-ext{color:var(--accent)}
+.carousel{overflow:hidden;touch-action:pan-y}
+.car-track{display:flex;transition:transform .32s var(--ease)}
+.car-track.dragging{transition:none}
+.car-slide{flex:0 0 100%;min-width:100%}
+.car-nav{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.car-btn{width:30px;height:30px;border-radius:999px;border:1px solid var(--line);background:var(--panel-solid);color:var(--text-dim);
+  cursor:pointer;display:grid;place-items:center;flex:none;transition:.15s}
+.car-btn:hover{color:var(--text);border-color:var(--line-strong)}
+.car-btn:disabled{opacity:.35;cursor:default}
+.car-btn .material-symbols-outlined{font-size:18px}
+.dots{display:flex;gap:5px;flex:1;justify-content:center}
+.dots .dot{width:6px;height:6px;border-radius:999px;background:var(--line-strong);cursor:pointer;transition:.2s}
+.dots .dot.on{background:var(--accent);width:16px}
+.car-count{font-size:11px;color:var(--text-faint);font-weight:600;white-space:nowrap}
+.car-count b{color:var(--text);font-weight:800;font-family:'Manrope'}
+
+/* Mehr-Klinik-Entwicklung: Block-Pille unter dem story-head + aufklappbare,
+   klickbare Standortliste. Bewusst eigene Block-Zeile (nicht inline), damit der Titel
+   darueber nicht umbricht. */
+.multi-badge{display:inline-flex;align-items:center;gap:6px;max-width:100%;
+  font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--accent-strong);background:var(--chip);border:1px solid var(--line);
+  border-radius:999px;padding:5px 11px;cursor:pointer;font-family:'Inter';transition:.15s}
+.multi-badge:hover{color:var(--text);border-color:var(--line-strong)}
+.multi-badge .material-symbols-outlined{font-size:15px;color:var(--text-dim)}
+.multi-badge .chev{margin-left:1px;transition:transform .2s}
+.multi-badge.open .chev{transform:rotate(180deg)}
+.affected{display:none;margin:6px 0 0;border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;background:var(--panel-solid)}
+.affected.open{display:block}
+.aff-row{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:none;
+  background:none;color:var(--text-dim);font:inherit;font-size:12px;padding:9px 11px;cursor:pointer;transition:.13s}
+.aff-row+.aff-row{border-top:1px solid var(--line)}
+.aff-row:hover{background:var(--card)}
+.aff-row .material-symbols-outlined{font-size:16px;color:var(--accent);flex:none}
+.aff-row b{color:var(--text);font-weight:600}
+.aff-row.self{cursor:default}
+.aff-row.self:hover{background:none}
+
+/* ============ Bottom-Sheet-Griff (nur Mobile sichtbar) ============ */
+.sheet-handle{display:none}
+
+/* ============ Schmales Fenster: Filter auf Trigger einklappen, Panel bleibt Side-Panel ============
+   Entkoppelt vom Bottom-Sheet-Breakpoint (768px): greift schon, sobald die inline-Filterleiste
+   sonst hinter das rechte Side-Panel laufen würde. Nur die Filter-Konsolidierung, KEINE
+   Panel-/Vollbreiten-Umstellung.
+   Schwelle: die inline-Steuerung (Zeitraum + Top + 6 Themen-Chips) ist ~1075px breit; die
+   Filterbox hat nur innerWidth−462px Platz (left:22 + right:440 fürs Side-Panel). inline passt
+   also erst ab ~1537px → darunter einklappen (1540 = Schwelle + kleiner Puffer). */
+@media (max-width:1540px){
+  /* Top-Schalter: Segment aus, Icon-Pille „★ Top" an */
+  .topseg{display:none}
+  .top-pill{display:inline-flex}
+
+  /* Filterleiste auf zwei Trigger eingeklappt; Optionen erst auf Tipp. Position bleibt Desktop
+     (right:440px), damit das Popover links NEBEN dem Side-Panel öffnet, nicht darunter. */
+  .filterbar{flex-wrap:wrap;row-gap:8px;overflow:visible}
+  .filter-trigger{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;
+    border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+    color:var(--text);font-size:12.5px;font-weight:600;box-shadow:var(--shadow);cursor:pointer}
+  .filter-trigger>.material-symbols-outlined{font-size:17px;color:var(--text-dim)}
+  .filter-trigger .caret{margin-left:-2px;font-size:18px;transition:transform .2s}
+  .filter-trigger.active{border-color:var(--accent)}
+  .filter-trigger.active .caret{transform:rotate(180deg)}
+  .filter-trigger.active>.material-symbols-outlined:first-child{color:var(--accent)}
+  .filterbar .range,.filterbar .divider,.filterbar #topicChips{display:none}
+  .filterbar[data-open="time"] .range{display:inline-flex;order:9;margin-left:0}
+  .filterbar[data-open="time"]::after{content:"";order:8;flex-basis:100%;height:0}
+  .filterbar[data-open="topics"] #topicChips{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;
+    background:var(--panel);backdrop-filter:blur(var(--blur-float));border:1px solid var(--line);border-radius:16px;
+    padding:10px;box-shadow:var(--shadow)}
+}
+
+/* ============ Mobile: Karte bleibt Basis, Panel wird Bottom-Sheet ============ */
+@media (max-width:768px){
+  /* Kopfleiste kompakt: Brand bleibt Flyout-Auslöser, Suche dominiert, Theme als Icon */
+  /* minmax(0,1fr): die Suchspalte darf unter ihre Inhalts-Mindestbreite schrumpfen, damit
+     sie exakt den Restplatz füllt und die rechten Icons nie über den Rand drückt. */
+  header{grid-template-columns:auto minmax(0,1fr) auto;height:56px;padding:0 12px;gap:10px}
+  .brand{gap:8px}
+  /* Navgroup-Spalte darf NICHT unter ihren Inhalt kollabieren (Basis-min-width:0 ist nur
+     für die fix-zentrierte Desktop-Suche gedacht); sonst frisst die in-flow-1fr-Suche die
+     auto-Spalte und überlappt die Brand-Pille. */
+  .navgroup{gap:0;min-width:max-content}
+  /* Mobile: Icon-Links aus, Brand-Flyout übernimmt (identisches Flyout wie Desktop, per Tap).
+     Die Wortmarke "Klinikpuls" entfällt planmäßig (die Suche darf ihren Platz einnehmen),
+     aber der Aufklapp-Caret bleibt immer sichtbar — er ist der einzige Zugang zu den
+     anderen Ansichten. (.viewseg/.brand-label sind bereits ab ≤1040px ausgeblendet.) */
+  .viewseg{display:none}
+  .brand-label{display:none}
+  .brand .brand-caret{display:inline-flex}
+  .viewmenu .brand{gap:4px;padding:0 7px 0 4px}
+  /* Suche NICHT mehr fix-zentriert: sie kehrt in den Grid-Fluss zurück und füllt als
+     Mittelspalte (1fr) den Platz zwischen Brand-Pille (links) und Theme-/Einstellungs-
+     Icons (rechts). Auf schmalen Schirmen gibt es keine sinnvolle echte Bildschirmmitte —
+     der verfügbare Platz wird einfach ausgefüllt, alle Kopf-Pillen sind gleich hoch (40px). */
+  .search{position:static;left:auto;top:auto;transform:none;justify-self:stretch;
+    width:auto;max-width:none;padding:0 13px}
+  .search kbd{display:none}
+  .theme-toggle{width:40px;padding:0;justify-content:center}
+  #themeLabel{display:none}
+
+  /* Filterleiste vollbreit; Trigger/Popover kommen aus dem ≤1100px-Block */
+  .filterbar{left:12px;right:12px;top:60px}
+
+  /* Panel -> Bottom-Sheet: links/rechts bündig, Höhe per Stufe (JS) */
+  .panel{left:0;right:0;bottom:0;top:auto;width:auto;height:52vh;
+    border-radius:20px 20px 0 0;transition:height .28s var(--ease)}
+  .panel.dragging{transition:none}
+  .sheet-handle{display:block;flex:none;height:22px;position:relative;cursor:grab;touch-action:none}
+  .sheet-handle::after{content:"";position:absolute;left:50%;top:9px;transform:translateX(-50%);
+    width:38px;height:4px;border-radius:999px;background:var(--line-strong)}
+  /* Kopf bis zur ersten Trennlinie (.id-stat-row) ziehbar; Kennzahlen-Zeile selbst nicht. */
+  .panel-head{padding-top:6px;cursor:grab;touch-action:none}
+}
