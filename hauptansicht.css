@@ -592,3 +592,47 @@ a.st-src:hover .st-ext{color:var(--accent)}
   .def-grid{gap:8px}
 }
 @keyframes sheet-up{from{transform:translateY(46px);opacity:.4}to{transform:none;opacity:1}}
+
+/* ============ Spalten-Umschalter & Mauerwerk (Desktop) ============
+   Standard ist einspaltig. Der schmale Griff am linken Panelrand schaltet
+   zweispaltig (.two-col): Panel wächst und die Artikelketten werden als
+   Mauerwerk gesetzt (CSS-Spalten, höhenvariabel; Bänder/Kopfzeilen
+   überspannen beide Spalten). Auf Mobile (Bottom-Sheet) gibt es keinen
+   Spaltenmodus. Die Karte wird beim Umschalten per JS horizontal mitgezogen. */
+@media (min-width:769px){
+  :root{--panel-2col:min(58vw,760px)}
+  /* Sanfte Breitenänderung; die Filterleisten-Position wird per JS aus der
+     Zielbreite gesetzt (kein Rect-Lesen während der Transition). */
+  .panel{transition:width .28s var(--ease)}
+  .panel.two-col{width:var(--panel-2col)}
+  /* Platz für den Greif-Streifen links, damit kein Inhalt darunter klebt. */
+  .panel .panel-scroll{padding-left:20px}
+
+  /* Schmaler, dezenter Griff: vertikaler Strich wie der Bottom-Sheet-Greifbalken,
+     beim Hover/Fokus Akzent + Richtungs-Chevron. */
+  .col-toggle{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:7;
+    width:20px;height:150px;display:flex;align-items:center;justify-content:center;
+    border:none;background:transparent;cursor:pointer;padding:0}
+  .col-toggle::before{content:"";width:4px;height:46px;border-radius:999px;
+    background:var(--line-strong);transition:background .15s,height .15s}
+  .col-toggle:hover::before,.col-toggle:focus-visible::before{background:var(--accent);height:66px}
+  .col-toggle .ct-ico{position:absolute;font-size:16px;color:var(--accent);opacity:0;
+    background:var(--panel-solid);border-radius:999px;padding:2px;transition:opacity .15s;
+    box-shadow:0 0 0 1px var(--line)}
+  .col-toggle:hover .ct-ico,.col-toggle:focus-visible .ct-ico{opacity:1}
+  .col-toggle:focus-visible{outline:none}
+
+  /* Mauerwerk auf dem .masonry-Container, den der Renderer je Zustand setzt
+     (Feed/Bereich: Wrapper um die flachen Kinder; Standort: die Verlaufs-Section).
+     Der Container hat auto-Höhe — Multicol darf NICHT auf dem höhen-begrenzten
+     Scroller #panelBody liegen, sonst entstehen horizontale Überlauf-Spalten. */
+  .panel.two-col #panelBody .masonry{columns:2;column-gap:14px}
+  .panel.two-col #panelBody .masonry > .story{break-inside:avoid;margin:0 0 14px}
+  .panel.two-col #panelBody .masonry > .feed-band,
+  .panel.two-col #panelBody .masonry > .subtabs,
+  .panel.two-col #panelBody .masonry > .empty,
+  .panel.two-col #panelBody .masonry > .kl-list,
+  .panel.two-col #panelBody .masonry > .kl-rest,
+  .panel.two-col #panelBody .masonry > .timeline-head{column-span:all;margin-left:0;margin-right:0}
+}
+@media (max-width:768px){ .col-toggle{display:none} }

@@ -362,8 +362,19 @@ function sheetDetents(){
 /* Unterkante der (ggf. mehrzeilig aufgeklappten) Filterleiste live messen,
    damit der Pin sicher unter den Filterpills bleibt. */
 function filterbarBottom(){const fb=document.getElementById("filterbar");if(!fb)return 110;return Math.max(0,fb.getBoundingClientRect().bottom);}
+/* Ziel-Panelbreite (deckungsgleich mit CSS: 404px einspaltig, min(58vw,760px) zweispaltig).
+   Aus dem Klassenzustand gerechnet, nicht aus dem laufenden Rect — verlässlich auch während
+   der Breiten-Transition. Mobile (Bottom-Sheet) hat keinen Spaltenmodus. */
+const PANEL_W_NARROW=404;
+function panelTargetWidth(){
+  const p=document.getElementById("panel");
+  return (p&&p.classList.contains("two-col")&&!mobileMQ.matches)
+    ? Math.min(innerWidth*0.58,760) : PANEL_W_NARROW;
+}
 function flyTo(f){
-  let padding={right:430,top:40,bottom:40,left:0};
+  // Rechtes Padding folgt der aktuellen Panelbreite, damit der Pin auch bei breitem
+  // (zweispaltigem) Panel im sichtbaren Kartenbereich landet, nicht dahinter.
+  let padding={right:Math.round(panelTargetWidth()+26),top:40,bottom:40,left:0};
   if(mobileMQ.matches){
     // Pin ins obere Drittel: kraeftiges bottom-padding schiebt das Zentrum hoch.
     const h=sheetDetents()[sheetState];

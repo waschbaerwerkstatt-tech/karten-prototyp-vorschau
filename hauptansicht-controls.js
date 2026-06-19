@@ -177,3 +177,48 @@ function openInfoModal(){const m=document.getElementById("infoModal");m.classLis
     help.addEventListener("click",e=>{e.stopPropagation();openInfoModal();});
   }
 })();
+
+/* ============ Spalten-Umschalter (Desktop): ein- ↔ zweispaltiges Panel ============
+   Schmaler Griff am linken Panelrand. Standard ist einspaltig; die Wahl wird gemerkt.
+   Beim Umschalten zieht die Karte horizontal mit (panBy um die halbe Breitenänderung),
+   damit der sichtbare Kartenausschnitt nicht hinter dem breiter werdenden Panel
+   verschwindet. Die Filterleiste bleibt bündig vor der Panelkante. */
+const COL_KEY="hauptansicht-panel-cols";
+function syncColToggle(){
+  const panel=document.getElementById("panel");
+  const toggle=document.getElementById("colToggle");
+  const fb=document.getElementById("filterbar");
+  const on=panel.classList.contains("two-col");
+  if(toggle){
+    const ico=toggle.querySelector(".ct-ico");
+    if(ico)ico.textContent=on?"chevron_right":"chevron_left";
+    toggle.setAttribute("aria-label",on?"Panel auf eine Spalte zusammenfassen":"Panel auf zwei Spalten erweitern");
+  }
+  if(fb) fb.style.right = mobileMQ.matches ? "" : Math.round(panelTargetWidth()+36)+"px";
+}
+function setPanelCols(twoCol){
+  const panel=document.getElementById("panel");
+  if(panel.classList.contains("two-col")===twoCol)return;
+  const before=panelTargetWidth();
+  panel.classList.toggle("two-col",twoCol);
+  const after=panelTargetWidth();
+  syncColToggle();
+  // Karte um die halbe Breitenänderung mitziehen (synchron zur .28s-Panel-Transition):
+  // der vorher in der sichtbaren Mitte liegende Punkt bleibt sichtbar, statt hinter
+  // das Panel zu wandern. panBy(+x) schiebt den Inhalt nach links (Aufklappen).
+  const delta=after-before;
+  if(delta && !mobileMQ.matches && typeof map!=="undefined" && map.panBy)
+    map.panBy([delta/2,0],{duration:300});
+  try{localStorage.setItem(COL_KEY,twoCol?"1":"0");}catch(_){}
+}
+(function initColToggle(){
+  const panel=document.getElementById("panel");
+  const toggle=document.getElementById("colToggle");
+  if(!panel)return;
+  let two=false; try{two=localStorage.getItem(COL_KEY)==="1";}catch(_){}
+  panel.classList.toggle("two-col",two);   // Standard einspaltig; gemerkte Wahl überschreibt
+  if(toggle)toggle.addEventListener("click",()=>setPanelCols(!panel.classList.contains("two-col")));
+  syncColToggle();
+  window.addEventListener("resize",syncColToggle);
+  mobileMQ.addEventListener("change",syncColToggle);
+})();

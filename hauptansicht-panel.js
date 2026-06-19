@@ -425,11 +425,35 @@ function renderBereich(){
   if(tab==="feed")wireFeedStories();
 }
 
+/* Spalten-Modus (Mauerwerk): den Mauerwerk-Container je Zustand festlegen. Er braucht
+   auto-Höhe — CSS-Multicol darf NICHT auf dem höhen-begrenzten Scroller #panelBody liegen,
+   sonst entstehen horizontale Überlauf-Spalten. Feed/Bereich: die frisch gerenderten
+   flachen Kinder in einen .masonry-Wrapper packen (Event-Listener bleiben beim Verschieben
+   erhalten). Standort: die Verlaufs-Section (mit .story/.timeline-head) bekommt .masonry.
+   Greift per CSS nur im .two-col-Zustand; das Markup wird trotzdem immer vorbereitet,
+   damit der Spalten-Griff ohne Re-Render umschalten kann. */
+function applyPanelMasonry(mode){
+  body.classList.remove("mode-feed","mode-bereich","mode-standort");
+  body.classList.add("mode-"+mode);
+  if(mode==="standort"){
+    body.querySelectorAll(".section").forEach(sec=>
+      sec.classList.toggle("masonry", !!sec.querySelector(".story,.timeline-head")));
+    return;
+  }
+  if(body.firstElementChild&&body.firstElementChild.classList.contains("masonry"))return;
+  const wrap=document.createElement("div");
+  wrap.className="masonry";
+  while(body.firstChild)wrap.appendChild(body.firstChild);
+  body.appendChild(wrap);
+}
+
 /* Drei Zustände: Standort (selectedId) > Bereich (frozen) > globaler Feed. */
 function renderPanel(){
-  if(state.selectedId&&byId.has(state.selectedId))renderStandort(byId.get(state.selectedId));
-  else if(state.frozen)renderBereich();
-  else renderFeed();
+  let mode;
+  if(state.selectedId&&byId.has(state.selectedId)){renderStandort(byId.get(state.selectedId));mode="standort";}
+  else if(state.frozen){renderBereich();mode="bereich";}
+  else {renderFeed();mode="feed";}
+  applyPanelMasonry(mode);
   updateTopicCounts();   // Panel- (sofern Standort) und Filterleisten-Chips frisch halten
 }
 
