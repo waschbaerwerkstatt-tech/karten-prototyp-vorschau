@@ -257,6 +257,27 @@ function addClinicLayers(){
   applyHighlight();   // Ring/Dimmen nach (Neu-)Aufbau wiederherstellen (auch nach Theme-Wechsel)
 }
 
+/* Deterministischer Wiederaufbau der Klinik-/Masken-Layer nach einem Style-Wechsel.
+   setStyle verwirft Source + GL-Layer. Da Hell- und Dunkel-Stil strukturgleich sind,
+   faehrt MapLibre ein DIFF — und in diesem Diff-Pfad feuert nachweislich KEIN
+   "styledata" (nur "sourcedata"), waehrend isStyleLoaded() erst spaet (wenn die
+   Tiles geladen sind) und dann via "sourcedata" auf true springt. Auf
+   isStyleLoaded()/styledata zu warten verpasst den Moment komplett -> genau das
+   liess Layer/Cluster beim Wechsel auf Hell verschwinden.
+   Richtig: nur der GEPARSTE Stil (map.style._loaded) ist noetig, um Source/Layer
+   zu setzen — Tiles sind dafuer egal. Im Diff-Pfad ist das direkt nach setStyle
+   bereits true -> sofort und synchron aufbauen. Nur im seltenen Vollreload-Pfad
+   (Diff scheitert) wird der Stil neu geparst; der frische Stil feuert dann ein
+   echtes "styledata" -> darauf nacharmen. addClinicLayers ist idempotent. */
+function rebuildClinicLayersWhenReady(){
+  if(!DATA) return;                          // vor dem Initial-Load nichts zu tun
+  if(map.style && map.style._loaded){        // Stil geparst (Diff-Pfad: schon synchron true)
+    if(!map.getSource(SRC)) addClinicLayers();
+    return;
+  }
+  map.once("styledata",rebuildClinicLayersWhenReady);   // Vollreload-Pfad: frischer Stil feuert styledata
+}
+
 /* Hervorhebung des eingefrorenen Bereichs (fest "Beide": Ring um den aktiven Cluster
    UND den Rest dimmen). Ohne Bereich: alles auf Normalzustand zurück. */
 function setVis(layer,v){if(map.getLayer(layer))map.setLayoutProperty(layer,"visibility",v);}

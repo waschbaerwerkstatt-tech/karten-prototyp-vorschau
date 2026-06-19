@@ -530,14 +530,9 @@ function setTheme(t){
   document.getElementById("themeIcon").textContent=t==="hell"?"light_mode":"dark_mode";
   document.getElementById("themeLabel").textContent=t==="hell"?"Hell":"Dunkel";
   map.setStyle(getMapStyle(t));
-  // setStyle verwirft Source+GL-Layer und baut den Stil asynchron neu auf. Den Wieder-
-  // aufbau der Klinik-/Masken-Layer uebernimmt der persistente "styledata"-Handler unten.
-  // ("style.load" waere falsch: es feuert bei setStyle NICHT erneut, nur beim Initial-Load.)
+  // setStyle verwirft Source+GL-Layer (Diff-Pfad: Source/Custom-Layer fallen raus, Basis
+  // wird nur umgefaerbt). Den Wiederaufbau deterministisch anstossen, statt auf das richtige
+  // styledata-Event zu hoffen -> rebuildClinicLayersWhenReady baut im Diff-Pfad sofort auf
+  // (Stil ist synchron bereit) und armt sich im Vollreload-Pfad selbst nach.
+  rebuildClinicLayersWhenReady();
 }
-
-/* Persistenter Wiederaufbau der Klinik-/Masken-Layer nach jedem Style-Wechsel.
-   Selbstheilend: feuert bei jedem styledata; sobald der neue Stil bereit ist
-   (isStyleLoaded) und unsere GeoJSON-Source fehlt, werden die Layer neu aufgebaut.
-   Ein zu frueher Versuch, den der noch settlende setStyle-Diff verwirft, wird vom
-   naechsten styledata erneut versucht. addClinicLayers ist idempotent. */
-map.on("styledata",()=>{ if(DATA && map.isStyleLoaded() && !map.getSource(SRC)) addClinicLayers(); });

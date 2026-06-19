@@ -561,6 +561,10 @@ a.st-src:hover .st-ext{color:var(--accent)}
      der verfügbare Platz wird einfach ausgefüllt, alle Kopf-Pillen sind gleich hoch (40px). */
   .search{position:static;left:auto;top:auto;transform:none;justify-self:stretch;
     width:auto;max-width:none;padding:0 13px}
+  /* iOS Safari zoomt beim Fokussieren automatisch hinein, sobald das Eingabefeld
+     kleiner als 16px ist. 16px unterbindet den Auto-Zoom und hält — anders als
+     user-scalable=no (von iOS 10+ ignoriert) — den Pinch-Zoom erhalten. */
+  .search input{font-size:16px}
   .search kbd{display:none}
   .theme-toggle{width:40px;padding:0;justify-content:center}
   #themeLabel{display:none}
