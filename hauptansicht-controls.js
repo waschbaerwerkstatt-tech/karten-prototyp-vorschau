@@ -1,5 +1,6 @@
 /* ============ Init Controls ============ */
 let placeThumbRef=null;
+let syncPeriodRef=null;   // füllt/markiert den Kalenderfilter (Ebene + Periode) aus state.period
 function closeFilterPop(){
   const fb=document.getElementById("filterbar"); if(!fb)return;
   fb.setAttribute("data-open","none");
@@ -8,7 +9,8 @@ function closeFilterPop(){
 }
 function syncFilterTriggers(){
   const tl=document.getElementById("trigTimeLabel");
-  if(tl)tl.textContent={7:"7 Tage",30:"30 Tage",0:"Alle"}[state.rangeDays];
+  // Aktive Kalender-Periode hat Vorrang im Trigger-Label (Exklusivität zum Tages-Preset).
+  if(tl)tl.textContent=state.period?periodLabel(state.period):{7:"7 Tage",30:"30 Tage",0:"Alle"}[state.rangeDays];
   const cb=document.getElementById("trigTopicsCount");
   if(cb){const n=state.topics.size; cb.textContent=n; cb.classList.toggle("is-empty",n===0);}
 }
@@ -17,20 +19,97 @@ function syncFilterTriggers(){
   const slider=document.getElementById("rangeSlider");
   const thumb=document.getElementById("rangeThumb");
   const steps=[...slider.querySelectorAll(".step")];
+  // "Kalender" ist ein Slider-Schritt wie 7/30 Tage: aktiv, sobald eine Periode gesetzt ist
+  // ODER der Schritt angeklickt wurde (Detail aufgeklappt, aber noch keine Periode gewählt).
+  let calMode=!!state.period;
   function placeThumb(){
-    const active=steps.find(s=>+s.dataset.days===state.rangeDays)||steps[steps.length-1];
+    const active=calMode
+      ? steps.find(s=>s.dataset.cal)
+      : (steps.find(s=>!s.dataset.cal&&+s.dataset.days===state.rangeDays)||steps[0]);
     steps.forEach(s=>s.classList.toggle("on",s===active));
     thumb.style.left=active.offsetLeft+"px";
     thumb.style.width=active.offsetWidth+"px";
   }
   steps.forEach(s=>s.addEventListener("click",()=>{
+    if(s.dataset.cal){           // "Kalender": nur Detail aufklappen, Filter folgt mit der Periode
+      calMode=true;
+      placeThumb(); syncPeriod();
+      return;                    // kein commit/close — Nutzer wählt erst Ebene + Periode
+    }
     state.rangeDays=+s.dataset.days;
-    placeThumb();
+    state.period=null;   // Exklusivität: Wahl eines Tages-Presets hebt die Kalender-Periode auf
+    calMode=false;
+    placeThumb(); syncPeriod();
     commitView({mapSync:"unlessFrozen",closeFilters:true});
   }));
   placeThumb(); placeThumbRef=placeThumb;
   window.addEventListener("resize",placeThumb);
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(placeThumb);
+
+  // Kalendarische Suche (Issue #262): Ebenen-Umschalter KW|Monat|Quartal + <select> für die
+  // konkrete Periode. Beide schreiben in state.period; analog zum Slider-Handler wird jeweils
+  // commitView({mapSync:"unlessFrozen",closeFilters:true}) gefeuert. Exklusivität: setzt eine
+  // Periode den Tages-Preset auf "Gesamt" (rangeDays=0) zurück, ein Preset wiederum state.period=null.
+  const periodPicker=document.getElementById("periodPicker");
+  const periodSeg=document.getElementById("periodSeg");
+  const periodSelect=document.getElementById("periodSelect");
+  const periodClear=document.getElementById("periodClear");
+  // aktuell gewählte Ebene im UI (state.period kennt nur eine GESETZTE Periode, nicht die bloße Ebene).
+  let periodLevel=(state.period&&state.period.level)||"monat";
+  // Optionen-Liste für die aktive Ebene neu aufbauen; optional eine value vorselektieren.
+  function fillPeriodOptions(sel){
+    const opts=periodOptions(periodLevel);
+    periodSelect.innerHTML=`<option value="">– wählen –</option>`+
+      opts.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join("");
+    periodSelect.value=sel||"";
+  }
+  // Ebenen-Segmente markieren (.on + aria), Select befüllen, Picker-Aktivzustand + Clear-Button spiegeln.
+  function syncPeriod(){
+    if(state.period)calMode=true;   // extern gesetzte Periode hält den Kalender-Schritt aktiv
+    periodPicker.classList.toggle("show",calMode);   // Detail nur im Kalender-Modus sichtbar
+    placeThumb();
+    periodLevel=(state.period&&state.period.level)||periodLevel;
+    periodSeg.querySelectorAll(".period-opt").forEach(o=>{
+      const on=o.dataset.level===periodLevel;
+      o.classList.toggle("on",on);
+      o.setAttribute("aria-checked",String(on));
+    });
+    const cur=state.period&&state.period.level===periodLevel?state.period.value:"";
+    fillPeriodOptions(cur);
+    const active=!!state.period;
+    periodPicker.classList.toggle("active",active);
+    if(periodClear)periodClear.hidden=!active;
+  }
+  syncPeriodRef=syncPeriod;
+  // Ebene wechseln: nur die Ebene umstellen + Optionen neu füllen. Solange keine konkrete Periode
+  // gewählt ist, bleibt state.period null (kein Filter). Liegt die aktive Periode auf einer anderen
+  // Ebene, wird sie verworfen (genau EINE Periode auf genau EINER Ebene).
+  periodSeg.querySelectorAll(".period-opt").forEach(o=>o.addEventListener("click",()=>{
+    periodLevel=o.dataset.level;
+    if(state.period&&state.period.level!==periodLevel){
+      state.period=null;   // Ebene gewechselt -> alte Periode fällt weg
+      commitView({mapSync:"unlessFrozen",closeFilters:true});
+    }else{
+      syncPeriod();        // nur UI: Ebene markieren + Optionen neu füllen
+    }
+  }));
+  periodSelect.addEventListener("change",e=>{
+    const v=e.target.value;
+    if(v){
+      state.period={level:periodLevel,value:v};
+      state.rangeDays=0;   // Exklusivität: Tages-Preset auf "Gesamt"/neutral zurück
+      placeThumb();        // Slider-Thumb auf "Alle" spiegeln
+    }else{
+      state.period=null;   // "– wählen –" -> Kalenderfilter aus
+    }
+    commitView({mapSync:"unlessFrozen",closeFilters:true});
+  });
+  if(periodClear)periodClear.addEventListener("click",()=>{
+    state.period=null;
+    calMode=false;   // Kalenderfilter aufheben -> Slider zurück auf den Tages-Preset
+    commitView({mapSync:"unlessFrozen",closeFilters:true});
+  });
+  syncPeriod();
 
   const tc=document.getElementById("topicChips");
   tc.innerHTML=TOPICS.map(t=>`<button class="chip" data-topic="${esc(t)}">${esc(t)}<span class="count-soft">0</span></button>`).join("");

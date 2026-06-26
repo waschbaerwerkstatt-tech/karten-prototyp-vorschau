@@ -465,6 +465,7 @@ function syncControls(){
   syncTopicChips();
   syncFilterTriggers();
   syncTopOnly();
+  if(typeof syncPeriodRef==="function")syncPeriodRef();   // Kalenderfilter (Ebene + Periode) spiegeln
   updateTopicCounts();
 }
 function commitView({mapSync="none",closeFilters=false,sheet=null,flyToFeature=null}={}){

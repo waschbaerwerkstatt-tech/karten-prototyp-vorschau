@@ -86,6 +86,7 @@ function applyForeignCountryLabelMask(){
 const state={selectedId:null,rangeDays:0,topics:new Set(),query:"",topOnly:false,
   frozen:null,       // {clusterId, center:[lng,lat], ids:Set<standort_id>, zoom} — eingefrorener Cluster-Bereich (zoom = Karten-Zoom beim Einfrieren)
   bereichTab:"feed", // Umschalter im Bereichs-Panel: feed | kliniken (Endnutzer-Wahl)
+  period:null,       // kalendarische Suche: {level:"kw"|"monat"|"quartal", value} oder null. Gegenseitig exklusiv zum Tages-Preset (rangeDays).
 };
 
 /* ============ Daten ============ */
@@ -110,7 +111,56 @@ const prettyHost=u=>{
   return parts.slice(-keep).join(".");
 };
 function daysAgo(iso){return Math.floor((TODAY-new Date(iso))/86400000);}
-function inRange(iso){return state.rangeDays===0 || daysAgo(iso)<=state.rangeDays;}
+
+/* ---- Kalendarische Suche (hierarchische Zeitauswahl) ----
+   Genau EINE Periode auf genau EINER Ebene (KW | Monat | Quartal). Keine Spanne, kein Jahr-Level.
+   Entscheidung: die wählbaren Perioden werden STATISCH für 2026 generiert (kein Scan der Daten).
+   Begründung: Die Datenbasis ist faktisch 2026 bis TODAY; eine feste, kalendarische Liste ist
+   robuster und vorhersehbarer als eine aus den Daten abgeleitete (keine Lücken durch leere
+   Perioden, keine Abhängigkeit von der Lade-Reihenfolge). Begrenzt auf 2026 bis einschließlich
+   TODAY: Quartale Q1/Q2, Monate Jan–Jun, KW bis zur laufenden Woche.
+   value-Kodierung pro Ebene: kw="2026-Www" (ISO-Wochennummer), monat="2026-MM", quartal="2026-Qn". */
+const PERIOD_YEAR=2026;
+/* ISO-8601-Wochennummer (Montag-Start, Woche-1 = Woche mit dem ersten Donnerstag). */
+function isoWeek(d){
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7;                       // So=7 statt 0
+  t.setUTCDate(t.getUTCDate()+4-day);               // auf den Donnerstag der Woche
+  const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  return {year:t.getUTCFullYear(),week:Math.ceil(((t-y0)/86400000+1)/7)};
+}
+/* Liefert die wählbaren Perioden je Ebene als [{value,label}] — nur 2026 bis einschließlich TODAY. */
+function periodOptions(level){
+  const out=[];
+  if(level==="quartal"){
+    const maxQ=Math.floor(TODAY.getMonth()/3)+1;     // 0..2 -> Q1, 3..5 -> Q2 ...
+    for(let q=1;q<=maxQ;q++)out.push({value:`${PERIOD_YEAR}-Q${q}`,label:`Q${q} ${PERIOD_YEAR}`});
+  }else if(level==="monat"){
+    const MN=["Jan","Feb","März","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+    for(let m=0;m<=TODAY.getMonth();m++)out.push({value:`${PERIOD_YEAR}-${String(m+1).padStart(2,"0")}`,label:`${MN[m]} ${PERIOD_YEAR}`});
+  }else{ // "kw"
+    const maxW=isoWeek(TODAY).week;                  // laufende Woche einschließlich
+    for(let w=1;w<=maxW;w++)out.push({value:`${PERIOD_YEAR}-W${String(w).padStart(2,"0")}`,label:`KW ${w} · ${PERIOD_YEAR}`});
+  }
+  return out;
+}
+/* Prüft ein Entwicklungsdatum (iso) gegen die aktive Periode (state.period). */
+function inPeriod(iso){
+  const p=state.period; if(!p)return true;
+  const d=new Date(iso);
+  if(d.getFullYear()!==PERIOD_YEAR)return false;     // Datenbasis ist 2026; alles andere fällt raus
+  if(p.level==="quartal"){const q=Math.floor(d.getMonth()/3)+1;return p.value===`${PERIOD_YEAR}-Q${q}`;}
+  if(p.level==="monat"){return p.value===`${PERIOD_YEAR}-${String(d.getMonth()+1).padStart(2,"0")}`;}
+  // KW: ISO-Woche von d mit der gewählten KW vergleichen (Jahr muss ebenfalls 2026 sein).
+  const iw=isoWeek(d);
+  return iw.year===PERIOD_YEAR && p.value===`${PERIOD_YEAR}-W${String(iw.week).padStart(2,"0")}`;
+}
+/* Zeitfilter über d.end: aktive Periode hat Vorrang (Exklusivität — Preset ist dann neutral),
+   sonst greift der Tages-Preset (rangeDays===0 = "Gesamt" = keine Beschränkung). */
+function inRange(iso){
+  if(state.period)return inPeriod(iso);
+  return state.rangeDays===0 || daysAgo(iso)<=state.rangeDays;
+}
 function topicMatch(topics){return state.topics.size===0 || (topics||[]).some(t=>state.topics.has(t));}
 function devTop(d){return (d.items||[]).length>=TOP_MIN_MELDUNGEN;}   // "Top"-Prädikat: Kettenlänge aus dem Export, kein Daten-Flag
 function devVisible(d){return inRange(d.end)&&topicMatch(d.topics)&&(!state.topOnly||devTop(d));}   // Filter-Kopplung: zählt diese Entwicklung? (deckt Cluster + Panel)
@@ -121,12 +171,29 @@ function devVisibleNoTopic(d){return inRange(d.end) && (!state.topOnly||devTop(d
 function searchNorm(s){return String(s==null?"":s).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").normalize("NFD").replace(/[̀-ͯ]/g,"");}
 function queryOk(f){
   if(!state.query)return true;
-  return (f.properties._searchBlob||"").includes(searchNorm(state.query));
+  // Mehrwort-UND: Query an Whitespace in Tokens splitten, jedes Token einzeln normalisieren,
+  // leere Tokens verwerfen. Treffer NUR, wenn JEDES Token als Substring im (bereits
+  // normalisierten) _searchBlob vorkommt. So matcht "Sana Leipzig" auch, wenn beide Teile
+  // verteilt im Blob stehen — der Blob wird NICHT erneut normalisiert (liegt schon normalisiert vor).
+  const blob=f.properties._searchBlob||"";
+  const tokens=state.query.split(/\s+/).map(searchNorm).filter(Boolean);
+  if(!tokens.length)return true;   // nur Whitespace -> wie leerer Query
+  return tokens.every(t=>blob.includes(t));
 }
 /* Such-sichtbare Grundgesamtheit: ohne Suche alle Standorte, mit Suche nur Treffer. */
 function visibleFeats(){return state.query?FEATS.filter(queryOk):FEATS;}
 function countDevs(f){let n=0;const ds=f.properties.developments||[];for(const d of ds)if(devVisible(d))n++;return n;}
-const rangeLabel=()=>({7:"den letzten 7 Tagen",30:"den letzten 30 Tagen",0:"gesamt"}[state.rangeDays]);
+/* Kompaktes Label einer Periode (für Trigger-Pille): "KW 24", "Jun 2026", "Q2 2026". */
+function periodLabel(p){
+  if(!p)return "";
+  const opt=periodOptions(p.level).find(o=>o.value===p.value);
+  if(opt)return opt.label.replace(" · 2026","").replace(" 2026"," ’26");
+  return p.value;
+}
+// Panel-Text "Artikel aus …": aktive Periode hat Vorrang (Exklusivität), sonst der Tages-Preset.
+const rangeLabel=()=>state.period
+  ? periodOptions(state.period.level).find(o=>o.value===state.period.value)?.label||state.period.value
+  : ({7:"den letzten 7 Tagen",30:"den letzten 30 Tagen",0:"gesamt"}[state.rangeDays]);
 
 /* Label-Zähler je Thema (on-the-fly): Entwicklungen je Thema über alle (such-)sichtbaren
    Standorte, unter Berücksichtigung von Zeitraum+Top+Suche, aber OHNE die Themen-Auswahl selbst. */

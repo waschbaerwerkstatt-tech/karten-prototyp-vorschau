@@ -150,8 +150,6 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
 .search input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--text);
   font-size:13.5px;font-family:'Inter';text-overflow:ellipsis}
 .search input::placeholder{color:var(--text-faint)}
-.search kbd{font-size:10px;font-weight:600;color:var(--text-faint);background:var(--chip);
-  border:1px solid var(--line);border-radius:5px;padding:2px 6px}
 
 .actions{justify-self:end;display:flex;align-items:center;gap:8px}
 .icon-btn{width:40px;height:40px;border-radius:999px;border:1px solid var(--line);
@@ -218,6 +216,35 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
   white-space:nowrap;transition:color .22s}
 .range .step:hover{color:var(--text)}
 .range .step.on,.range .step.on:hover{color:var(--accent-ink)}
+.range .step-cal{padding:0 11px}
+.range .step-cal .material-symbols-outlined{font-size:18px}
+
+/* Kalendarische Suche (KW | Monat | Quartal + Perioden-Auswahl) — Look an .range/.topseg angelehnt */
+.period{position:relative;display:none;align-items:center;gap:6px;height:34px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+  padding:3px 6px 3px 10px;box-shadow:var(--shadow);flex:none}
+/* Detail haengt UNTER der Zeitleiste, nicht daneben. Fixe Koordinaten = Filterleiste
+   (top:74 + ~46px Hoehe; left:22 + 2px Padding => unter der linken Kante der .range).
+   ponytail: fixed statt in-flow/absolut, weil .filterbar overflow-x:auto das Detail sonst abschneidet. */
+.period.show{display:inline-flex;position:fixed;top:124px;left:24px;z-index:31}
+.period.active{border-color:var(--accent)}
+.period .lead{display:grid;place-items:center;padding:0 2px 0 5px;color:var(--text-dim)}
+.period .lead .material-symbols-outlined{font-size:17px}
+.period-seg{display:inline-flex;align-items:center;gap:2px}
+.period-opt{display:inline-flex;align-items:center;height:28px;padding:0 10px;border:none;border-radius:999px;
+  background:none;color:var(--text-dim);font-family:'Inter';font-weight:600;font-size:12px;cursor:pointer;
+  white-space:nowrap;transition:color .2s,background .2s}
+.period-opt:hover{color:var(--text)}
+.period-opt.on,.period-opt.on:hover{background:var(--accent);color:var(--accent-ink)}
+.period-select{height:28px;max-width:150px;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel);color:var(--text);font-family:'Inter';font-weight:600;font-size:12px;
+  padding:0 8px;cursor:pointer;transition:border-color .2s}
+.period-select:hover{border-color:var(--line-strong)}
+.period-select:disabled{opacity:.5;cursor:default}
+.period-clear{display:grid;place-items:center;width:24px;height:24px;border-radius:999px;border:none;
+  background:none;color:var(--text-dim);cursor:pointer;transition:color .15s}
+.period-clear:hover{color:var(--text)}
+.period-clear .material-symbols-outlined{font-size:17px}
 
 /* Top-Filter (Segmented "Alle | Top") — so schlicht wie der Theme-Schalter */
 .topseg{display:inline-flex;align-items:center;height:34px;border-radius:999px;border:1px solid var(--line);
@@ -528,8 +555,10 @@ a.st-src:hover .st-ext{color:var(--accent)}
   .filter-trigger.active{border-color:var(--accent)}
   .filter-trigger.active .caret{transform:rotate(180deg)}
   .filter-trigger.active>.material-symbols-outlined:first-child{color:var(--accent)}
-  .filterbar .range,.filterbar .divider,.filterbar #topicChips{display:none}
+  .filterbar .range,.filterbar .period,.filterbar .divider,.filterbar #topicChips{display:none}
   .filterbar[data-open="time"] .range{display:inline-flex;order:9;margin-left:0}
+  /* Kompaktlayout: Detail bleibt in-flow (gewrappt unter den Triggern), nicht das Desktop-Overlay. */
+  .filterbar[data-open="time"] .period.show{display:inline-flex;order:10;margin-left:0;position:static}
   .filterbar[data-open="time"]::after{content:"";order:8;flex-basis:100%;height:0}
   .filterbar[data-open="topics"] #topicChips{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;
     background:var(--panel);backdrop-filter:blur(var(--blur-float));border:1px solid var(--line);border-radius:16px;
