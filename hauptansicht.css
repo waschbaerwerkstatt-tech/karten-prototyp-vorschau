@@ -94,8 +94,9 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
 /* Caret: blendet das Flyout-Verhalten an der Brand-Pille an; auf Desktop immer sichtbar,
    damit der Ruhezustand als aufklappbar lesbar ist. */
 .brand .brand-caret{display:inline-flex;align-items:center;font-size:18px;color:var(--text-faint);margin-left:-2px;transition:transform .2s}
-/* Brand-Pille = aktive Ansicht „Nachrichten" im Accent-Stil (wie früher .navlink.on). */
-.viewmenu{position:relative;display:flex;align-items:center}
+/* Brand-Pille = aktive Ansicht „Nachrichten" im Accent-Stil. Nur Mobile (≤1040px);
+   auf Desktop übernimmt die vereinte .viewbar, deshalb hier standardmäßig aus. */
+.viewmenu{position:relative;display:none;align-items:center}
 .viewmenu .brand{height:40px;padding:0 13px 0 4px;border-radius:999px;border:1px solid transparent;
   background:var(--accent);color:var(--accent-ink);gap:8px}
 .viewmenu .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--accent-ink);color:var(--accent)}
@@ -103,16 +104,42 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
 .viewmenu .brand .brand-label{font-size:12.5px;letter-spacing:-.01em}
 .viewmenu .brand .brand-caret{color:var(--accent-ink);opacity:.7}
 .viewmenu .brand:focus-visible{outline:2px solid var(--accent-strong);outline-offset:2px}
-/* Icon-Leiste: die 3 anderen Ansichten als reine Icon-Links (ohne Text), direkt anklickbar. */
-.viewseg{display:inline-flex;align-items:center;height:40px;border-radius:999px;border:1px solid var(--line);
-  background:var(--panel);backdrop-filter:blur(var(--blur-float));box-shadow:var(--shadow);padding:3px;gap:2px;flex:none}
-.viewseg .navlink{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;width:36px;
-  padding:0;border-radius:999px;color:var(--text-dim);font-family:'Inter';font-size:12.5px;font-weight:600;
-  white-space:nowrap;text-decoration:none;transition:color .2s,background .2s}
-.viewseg .navlink .material-symbols-outlined{font-size:18px}
-.viewseg .navlink .nl-label{display:none}   /* Ruhezustand: nur Icons; Klartext steckt im Flyout */
-.viewseg .navlink:hover{color:var(--text);background:var(--chip)}
-.viewseg .navlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* ============ Vereinte Ansichten-Leiste (Desktop) ============
+   EINE Pille mit allen vier Ansichten. Ruhezustand: aktive Ansicht als Accent-Segment mit
+   Label, die drei anderen als reine Symbole. Hover eines Symbols klappt seine Bezeichnung
+   AUS (Label hugged eng, kein Leerraum). Damit die Box dabei NICHT springt: feste Bar-Breite
+   + justify-content:space-between — die durch das Ein-/Ausklappen frei werdende Breite wird
+   als Abstand ZWISCHEN die eingeklappten Symbole verteilt, nicht als Leerraum in die Pille.
+   Weil die Label-Breite weich transitioniert, gleiten die Symbole (space-between rechnet jeden
+   Frame neu), sie springen nicht. Reihenfolge der Regeln ist bewusst: die spezifischeren
+   .on:hover-Regeln stehen zuletzt, damit das Überfahren des aktiven Segments Accent + Label behält.
+   ponytail: 264px ist auf das längste Label „Rechtsprechung" (~261px) gerechnet; ein neuer,
+   längerer Ansichtsname → Wert erhöhen, sonst läuft die Pille über. */
+.viewbar{display:inline-flex;align-items:center;justify-content:space-between;width:264px;height:40px;
+  border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+  box-shadow:var(--shadow);padding:3px;gap:2px;flex:none}
+.viewbar .vb-item{display:inline-flex;align-items:center;height:34px;padding:0 7px;border-radius:999px;
+  color:var(--text-dim);text-decoration:none;transition:color .2s,background .2s}
+.viewbar .vb-ic{display:inline-flex;justify-content:center;width:22px;font-size:18px;flex:none}
+/* Label hugged eng (max-width statt fester width): die Breite folgt dem Text, kein Leerraum
+   in der Pille. Die konstante Box entsteht über die feste Bar-Breite + space-between oben,
+   nicht über einen festen Slot. max-width:120px ist nur eine Obergrenze (~98px reichen). */
+.viewbar .vb-lab{display:inline-block;max-width:0;overflow:hidden;white-space:nowrap;opacity:0;margin-left:0;
+  font-family:'Inter';font-size:12.5px;font-weight:600;letter-spacing:-.01em;
+  transition:max-width .28s cubic-bezier(.4,0,.2,1),opacity .18s,margin-left .28s}
+/* Aktive Ansicht: Accent-Segment, Label im Ruhezustand offen. */
+.viewbar .vb-item.on{background:var(--accent);color:var(--accent-ink)}
+.viewbar .vb-item.on .vb-lab{max-width:120px;opacity:1;margin-left:5px}
+/* Sobald die Leiste überfahren wird: aktives Label einklappen … */
+.viewbar:hover .vb-item.on{background:transparent;color:var(--text-dim)}
+.viewbar:hover .vb-item.on .vb-lab{max-width:0;opacity:0;margin-left:0}
+/* … und die Bezeichnung des überfahrenen Symbols ausklappen. */
+.viewbar .vb-item:hover{background:var(--chip);color:var(--text)}
+.viewbar .vb-item:hover .vb-lab{max-width:120px;opacity:1;margin-left:5px}
+/* Über der aktiven Ansicht: Accent + Label bleiben (steht zuletzt = gewinnt bei Gleichstand). */
+.viewbar .vb-item.on:hover{background:var(--accent);color:var(--accent-ink)}
+.viewbar .vb-item.on:hover .vb-lab{max-width:120px;opacity:1;margin-left:5px}
+.viewbar .vb-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* Overlay-Flyout mit den vier Ansichten (Name + Kurzbeschreibung). Liegt absolut über der
    Karte und beeinflusst das Header-Layout NICHT (kein Umfließen, keine Breitenänderung). */
 .viewflyout{position:absolute;top:46px;left:0;z-index:50;min-width:248px;background:var(--panel-solid);
@@ -174,9 +201,10 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
   #themeLabel{display:none}
 }
 @media (max-width:1040px){
+  .viewbar{display:none}                          /* vereinte Leiste aus … */
+  .viewmenu{display:flex}                          /* … Logo+Caret-Flyout übernimmt (Touch) */
   .viewmenu .brand{padding:0 9px 0 4px}
   .viewmenu .brand .brand-label{display:none}   /* Wortmarke aus, Brand wird Logo+Caret */
-  .viewseg{display:none}                          /* Icon-Links zurück ins Flyout */
 }
 
 /* ============ Filterleiste ============ */
@@ -576,11 +604,10 @@ a.st-src:hover .st-ext{color:var(--accent)}
      für die fix-zentrierte Desktop-Suche gedacht); sonst frisst die in-flow-1fr-Suche die
      auto-Spalte und überlappt die Brand-Pille. */
   .navgroup{gap:0;min-width:max-content}
-  /* Mobile: Icon-Links aus, Brand-Flyout übernimmt (identisches Flyout wie Desktop, per Tap).
+  /* Mobile: Brand-Flyout übernimmt (identisches Flyout wie Desktop-Fallback, per Tap).
      Die Wortmarke "Klinikpuls" entfällt planmäßig (die Suche darf ihren Platz einnehmen),
      aber der Aufklapp-Caret bleibt immer sichtbar — er ist der einzige Zugang zu den
-     anderen Ansichten. (.viewseg/.brand-label sind bereits ab ≤1040px ausgeblendet.) */
-  .viewseg{display:none}
+     anderen Ansichten. (.viewbar/.brand-label sind bereits ab ≤1040px ausgeblendet.) */
   .brand-label{display:none}
   .brand .brand-caret{display:inline-flex}
   .viewmenu .brand{gap:4px;padding:0 7px 0 4px}
