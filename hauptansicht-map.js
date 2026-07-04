@@ -13,7 +13,9 @@ const TOPICS=["Insolvenz","Investition","Trägerwechsel","Personal","Versorgung"
 const SRC="kliniken";
 const FEED_STORY_LIMIT=40;  // globaler Feed gebuendelt: max. so viele Story-Karten rendern (DOM-leicht)
 const TOP_MIN_MELDUNGEN=2;  // "Top"-Entwicklung = Kette aus >= so vielen Meldungen; Schwelle an genau einer Stelle (ggf. auf 3 drehen)
-/* Deutschland-Ausgangsuebersicht (deckungsgleich mit der map-Initialisierung). */
+/* Deutschland-Ausgangsuebersicht. Die Kamera wird nach dem Load layoutbewusst
+   eingerueckt, damit der Mittelpunkt im sichtbaren Kartenfenster links vom
+   Artikelpanel liegt und nicht geometrisch im kompletten Viewport. */
 const HOME_CENTER=[10.3,51.15], HOME_ZOOM=5.45;
 
 /* ---- Cluster-Encoding: Preset 1, fest eingebacken ---- */
@@ -400,7 +402,7 @@ function freezeCluster(cid,center,pc){
 function clearBereich(){
   state.frozen=null; state.selectedId=null;
   commitView({mapSync:"rebuild",sheet:"half"});   // rebuildSource: _frozenMember zurücksetzen
-  map.easeTo({center:HOME_CENTER,zoom:HOME_ZOOM,duration:600});   // zurueck zur Ausgangsuebersicht
+  goHome(600);   // zurueck zur Ausgangsuebersicht
 }
 function zoomToBereich(){
   if(!state.frozen)return;
@@ -437,6 +439,26 @@ function panelTargetWidth(){
   const p=document.getElementById("panel");
   return (p&&p.classList.contains("two-col")&&!mobileMQ.matches)
     ? Math.min(innerWidth*0.58,760) : PANEL_W_NARROW;
+}
+function homePadding(){
+  if(mobileMQ.matches){
+    const h=sheetDetents()[sheetState];
+    return {
+      top:Math.round(filterbarBottom()+18),
+      right:22,
+      bottom:Math.round(h+20),
+      left:22,
+    };
+  }
+  return {
+    top:124,
+    right:Math.round(panelTargetWidth()+44),
+    bottom:28,
+    left:24,
+  };
+}
+function goHome(duration=0){
+  map.easeTo({center:HOME_CENTER,zoom:HOME_ZOOM,padding:homePadding(),duration});
 }
 function flyTo(f){
   // Rechtes Padding folgt der aktuellen Panelbreite, damit der Pin auch bei breitem

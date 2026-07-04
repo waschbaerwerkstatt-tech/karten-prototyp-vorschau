@@ -17,6 +17,7 @@ async function start(){
   FEATS.forEach(f=>{const p=f.properties;const parts=[p.name,p.traeger,p.city,p.region];(p.developments||[]).forEach(d=>{(d.topics||[]).forEach(t=>parts.push(t));(d.items||[]).forEach(m=>parts.push(m.titel));});p._searchBlob=searchNorm(parts.join(" "));});
   addClinicLayers();
   renderPanel();
+  goHome(0);
 }
 if(map.isStyleLoaded())start();
 else map.on("load",start);

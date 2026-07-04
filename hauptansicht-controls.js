@@ -274,6 +274,7 @@ function syncColToggle(){
     toggle.setAttribute("aria-label",on?"Panel auf eine Spalte zusammenfassen":"Panel auf zwei Spalten erweitern");
   }
   if(fb) fb.style.right = mobileMQ.matches ? "" : Math.round(panelTargetWidth()+36)+"px";
+  if(!state.selectedId&&!state.frozen&&typeof goHome==="function"&&map.isStyleLoaded&&map.isStyleLoaded())goHome(0);
 }
 function setPanelCols(twoCol){
   const panel=document.getElementById("panel");
@@ -286,8 +287,10 @@ function setPanelCols(twoCol){
   // der vorher in der sichtbaren Mitte liegende Punkt bleibt sichtbar, statt hinter
   // das Panel zu wandern. panBy(+x) schiebt den Inhalt nach links (Aufklappen).
   const delta=after-before;
-  if(delta && !mobileMQ.matches && typeof map!=="undefined" && map.panBy)
-    map.panBy([delta/2,0],{duration:300});
+  if(delta && !mobileMQ.matches && typeof map!=="undefined"){
+    if(!state.selectedId&&!state.frozen&&typeof goHome==="function")goHome(300);
+    else if(map.panBy)map.panBy([delta/2,0],{duration:300});
+  }
   try{localStorage.setItem(COL_KEY,twoCol?"1":"0");}catch(_){}
 }
 (function initColToggle(){
