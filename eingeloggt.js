@@ -7,9 +7,11 @@
    Die aktive Ansicht wird aus location.pathname bestimmt.
 
    Markierbare Eintraege tragen data-eintrag-id. Die aktive Ansicht badged die
-   ungesehenen Neu-Eintraege ("Neu"-Pille); Viewport (>=50 %, ~1 s) oder Klick
-   raeumt sie ab. Die Kopfnavigation zeigt je NICHT-aktiver Ansicht die
-   ungesehene Neu-Zahl (Ecke des Icons + Zahl im Flyout, ab 10 "9+"). Politik
+   ungesehenen Neu-Eintraege ("Neu"-Pille); erst wenn ein Eintrag sichtbar war
+   und danach wieder aus dem Viewport laeuft, wird er abgeraeumt. Die
+   Kopfnavigation zeigt je fremder Ansicht die ungesehene Neu-Zahl (Ecke des
+   Icons + Zahl im Flyout, ab 10 "9+") und fuer die aktive Ansicht "N offen".
+   Politik
    ist dreistufig: Nav-Zahl = Summe neuer Stellungnahmen, Themenzeile traegt ein
    aggregiertes "N neu", die Stellungnahme im Dossier die Einzelmarke.
 
@@ -23,7 +25,7 @@
   /* ---- Demo-Nutzer (fiktiv, fest verdrahtet) ---- */
   const EG_USER = window.EG_USER = {
     name: "Dr. Katrin Vogt",
-    initialen: "KV",
+    initialen: "Ka",
     favoritKlinikId: "marien",            // eines der 8 HH-Haeuser (analysen-data.js) -> Teaser-Pfad
     favoritKlinikName: "Marienkrankenhaus",
     landkreis: "Hamburg-Nord",
@@ -84,17 +86,30 @@
     return spec.ids.filter(id => !s.has(gid(view, id))).length;
   }
 
-  /* ---- Kopfnavigation: Badges je nicht-aktiver Ansicht ---- */
+  function setCurrentCount(host, c, beforeEl) {
+    let b = host.querySelector(":scope > .eg-current");
+    if (c > 0) {
+      if (!b) { b = document.createElement("span"); b.className = "eg-current"; }
+      b.textContent = c + " offen";
+      if (!b.parentNode) {
+        if (beforeEl && beforeEl.parentNode === host) host.insertBefore(b, beforeEl);
+        else host.appendChild(b);
+      }
+    } else if (b) { b.remove(); }
+  }
+
+  /* ---- Kopfnavigation: Fremdansichten als Badge, aktive Ansicht als Offen-Hinweis ---- */
   function renderNav() {
     document.querySelectorAll(".vb-item, .vf-item").forEach(a => {
       const view = viewOfHref(a.getAttribute("href"));
       const active = a.classList.contains("on") || a.getAttribute("aria-current") === "page" || view === CURRENT;
-      const c = (view && !active) ? count(view) : 0;
+      const c = view ? count(view) : 0;
       let b = a.querySelector(".eg-badge");
-      if (c > 0) {
+      if (c > 0 && !active) {
         if (!b) { b = document.createElement("span"); b.className = "eg-badge"; a.appendChild(b); }
         b.textContent = c >= 10 ? "9+" : String(c);
       } else if (b) { b.remove(); }
+      setCurrentCount(a, active ? c : 0, a.querySelector(":scope > .check"));
     });
     // Mobile: Sammelpunkt am Menue-Ausloeser
     const brand = document.querySelector(".brand");
@@ -103,20 +118,23 @@
       let d = brand.querySelector(".eg-dot");
       if (sum > 0 && !d) { d = document.createElement("span"); d.className = "eg-dot"; brand.appendChild(d); }
       else if (sum === 0 && d) d.remove();
+      setCurrentCount(brand, count(CURRENT), brand.querySelector(":scope > .brand-caret"));
     }
   }
 
-  /* ---- Viewport-Beobachter: >=50 % ~1 s sichtbar -> gesehen ---- */
+  /* ---- Viewport-Beobachter: sichtbar gewesen, dann rausgelaufen -> gesehen ---- */
   const io = new IntersectionObserver(ents => {
     ents.forEach(e => {
       const el = e.target;
-      // "Im Viewport gewesen": >=50 % des Eintrags ODER >=50 % des Viewports bedeckt
-      // (grosse Karten erreichen nie 50 % ihrer selbst). Plus ~1 s Karenz.
+      // Erst "gesehen genug" vormerken: >=50 % des Eintrags ODER >=50 % des
+      // Viewports bedeckt (grosse Karten erreichen nie 50 % ihrer selbst).
       const rb = e.rootBounds;
       const viewportFrac = rb && rb.height ? e.intersectionRect.height / rb.height : 0;
-      const gesehenGenug = e.isIntersecting && (e.intersectionRatio >= 0.5 || viewportFrac >= 0.5);
-      if (gesehenGenug) el._egT = setTimeout(() => retire(el), 1000);
-      else clearTimeout(el._egT);
+      if (e.isIntersecting && (e.intersectionRatio >= 0.5 || viewportFrac >= 0.5)) {
+        el._egSeenOnce = true;
+      } else if (!e.isIntersecting && el._egSeenOnce) {
+        retire(el);
+      }
     });
   }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
 
@@ -148,7 +166,6 @@
     b.className = "eg-neu"; b.textContent = "Neu";
     host.insertBefore(b, host.firstChild);
     io.observe(el);
-    el.addEventListener("click", () => retire(el), { once: true });
   }
 
   /* ---- Neu-Markierung der aktiven Ansicht anwenden ---- */
@@ -159,7 +176,8 @@
     const all = [...document.querySelectorAll("[data-eintrag-id]")];
     let targets;
     if (spec.firstN != null) {
-      targets = all.filter(el => !s.has(gid(CURRENT, el.getAttribute("data-eintrag-id")))).slice(0, spec.firstN);
+      targets = all.slice(0, spec.firstN)
+        .filter(el => !s.has(gid(CURRENT, el.getAttribute("data-eintrag-id"))));
     } else {
       targets = all.filter(el => {
         const id = el.getAttribute("data-eintrag-id");
@@ -210,6 +228,14 @@
         font:600 10px/16px Inter,system-ui,sans-serif; text-align:center; letter-spacing:.01em;
         box-shadow:0 0 0 2px var(--panel-solid,#16171c); pointer-events:none; z-index:6; }
       .vf-item .eg-badge { position:static; margin-left:auto; box-shadow:none; }
+      .eg-current { display:inline-flex; align-items:center; justify-content:center; height:17px; padding:0 6px;
+        border-radius:999px; background:var(--chip,#1d1e24); color:var(--accent-strong,#a9c6e8);
+        border:1px solid var(--line,rgba(255,255,255,.08)); font:700 9.5px/1 Inter,system-ui,sans-serif;
+        white-space:nowrap; flex:none; }
+      .vb-item .eg-current { margin-left:6px; }
+      .vf-item .eg-current { margin-left:auto; }
+      .brand .eg-current { margin-left:4px; background:var(--accent-ink,#0b1622); color:var(--accent,#8ab0d9);
+        border-color:transparent; }
       .eg-dot { position:absolute; top:5px; right:5px; width:8px; height:8px; border-radius:50%;
         background:var(--accent,#8ab0d9); box-shadow:0 0 0 2px var(--panel-solid,#16171c); }
       .eg-neu { display:inline-flex; align-items:center; flex:none; justify-self:start; vertical-align:middle; margin-right:7px;
