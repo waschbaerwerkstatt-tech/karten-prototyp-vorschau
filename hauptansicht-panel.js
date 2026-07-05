@@ -102,7 +102,7 @@ function feedStoryCard(x){
   const affected=multi
     ? `<div class="affected">${clinics.map(c=>`<button class="aff-row" type="button" data-action="select-location" data-loc="${esc(c.properties.standort_id)}"><span class="material-symbols-outlined" aria-hidden="true">location_on</span><b>${esc(c.properties.name)}</b></button>`).join("")}</div>`
     : "";
-  return `<div class="story" data-loc="${id}">
+  return `<div class="story" data-loc="${id}" data-eintrag-id="${esc(feedKey(x))}">
     <div class="story-head">${who}<div class="story-tags">${tags}</div></div>
     ${affected}
     ${carouselHTML(x.items)}
@@ -365,9 +365,36 @@ function standortBody(f){
     </div>
     <div class="proto-note">* Fachabteilungs-Zahl im Prototyp erfunden; übrige Kennzahlen real (BKA/QB).</div>`;
 }
+/* Analysen-Teaser (Eingeloggt-Demo, Beschluss 15-17): erscheint im Standort-Panel nur
+   fuer Haeuser mit Analysen-Daten (die 8 HH-Haeuser; Match ueber den exakten Klinik-
+   namen = CLINICS[id].full aus analysen-data.js). Wortleiter + bundesweites Perzentil
+   auf Hausebene und die druckstaerkste Leistungsfamilie stammen 1:1 aus der Markt-Linse
+   (befundMarkt): hausDruck = fallvolumengewichtetes Mittel der Familien-Druckwerte.
+   ponytail: dieser Aggregatwert ist im Mock haus-unabhaengig (P61 "hoch",
+   Koronarintervention), daher fest verdrahtet statt nachgerechnet. */
+const ANALYSEN_HAEUSER={
+  "Universitätsklinikum Hamburg-Eppendorf (UKE)":"uke",
+  "Asklepios Klinik St. Georg":"stgeorg",
+  "Asklepios Klinik Altona":"altona",
+  "Asklepios Klinik Barmbek":"barmbek",
+  "Kath. Marienkrankenhaus gGmbH":"marien",
+  "Albertinen Krankenhaus-Albertinen Haus":"albertinen",
+  "Bethesda Krankenhaus Bergedorf gGmbH":"bethesda",
+  "Johanniter-Krankenhaus Geesthacht":"geesthacht",
+};
+function analysenTeaser(name){
+  const hid=ANALYSEN_HAEUSER[name];
+  if(!hid)return "";   // Haus ohne Analysen-Daten -> Block erscheint gar nicht
+  return `<a class="analysen-teaser" href="seiten/analysen.html?haus=${hid}&linse=3">
+    <div class="at-absender"><span class="material-symbols-outlined" aria-hidden="true">insights</span>Analysen · Markt &amp; Wettbewerb</div>
+    <div class="at-lead">Wettbewerbsdruck: <b>hoch</b> <span class="at-p">P61 bundesweit</span></div>
+    <div class="at-fam">am stärksten unter Druck: <b>Koronarintervention</b></div>
+    <span class="at-cta">Zur Markt-Analyse<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></span>
+  </a>`;
+}
 function renderStandort(f){
   head.innerHTML=standortHead(f.properties,f);
-  body.innerHTML=standortBody(f);
+  body.innerHTML=standortBody(f)+analysenTeaser(f.properties.name);
   body.querySelectorAll(".story").forEach(wireCarousel);
 }
 
