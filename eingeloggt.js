@@ -120,6 +120,21 @@
       else if (sum === 0 && d) d.remove();
       setCurrentCount(brand, count(CURRENT), brand.querySelector(":scope > .brand-caret"));
     }
+    renderLensBadge();
+  }
+
+  /* Analysen: den Offen-Zaehler zusaetzlich an den Markt-Reiter der Linsen-Nav haengen.
+     Alle gezaehlten Neu-Signale (NEU.analysen) sind Markt-Signale der Marktraum-Kachel. */
+  function renderLensBadge() {
+    if (CURRENT !== "analysen") return;
+    const btn = document.querySelector('#lensSeg button[data-lens="3"]');
+    if (!btn) return;
+    const c = count("analysen");
+    let b = btn.querySelector(".eg-badge");
+    if (c > 0) {
+      if (!b) { b = document.createElement("span"); b.className = "eg-badge"; btn.appendChild(b); }
+      b.textContent = c >= 10 ? "9+" : String(c);
+    } else if (b) { b.remove(); }
   }
 
   /* ---- Viewport-Beobachter: sichtbar gewesen, dann rausgelaufen -> gesehen ---- */
@@ -228,11 +243,23 @@
         font:600 10px/16px Inter,system-ui,sans-serif; text-align:center; letter-spacing:.01em;
         box-shadow:0 0 0 2px var(--panel-solid,#16171c); pointer-events:none; z-index:6; }
       .vf-item .eg-badge { position:static; margin-left:auto; box-shadow:none; }
+      /* Analysen: Offen-Zaehler zusaetzlich am Markt-Reiter (inline statt Eck-Badge,
+         die Segment-Leiste clippt sonst; im aktiven Reiter invertiert). */
+      #lensSeg .eg-badge { position:static; box-shadow:none; }
+      #lensSeg button.on .eg-badge { background:var(--accent-ink,#0b1622); color:var(--accent,#8ab0d9); }
       .eg-current { display:inline-flex; align-items:center; justify-content:center; height:17px; padding:0 6px;
         border-radius:999px; background:var(--chip,#1d1e24); color:var(--accent-strong,#a9c6e8);
         border:1px solid var(--line,rgba(255,255,255,.08)); font:700 9.5px/1 Inter,system-ui,sans-serif;
         white-space:nowrap; flex:none; }
       .vb-item .eg-current { margin-left:6px; }
+      /* Die aktive "N offen"-Pille wird NACH dem ersten Paint in die .viewbar
+         injiziert. Deren feste Breite (264px, auf das laengste Label gerechnet)
+         kennt die Pille nicht -> Inhalt lief ueber den rechten Rand, die Leiste
+         sah beim Laden "kaputt" aus und rueckte sich erst bei einem erzwungenen
+         Reflow (Hover) zurecht. Fix: sobald die Pille da ist, die Leiste ihren
+         Inhalt umschliessen lassen (width:max-content), Basisbreite als Untergrenze.
+         justify-content:space-between haelt die Box weiter starr -> kein Ruck. */
+      .viewbar:has(.eg-current) { width:max-content; min-width:264px; }
       .vf-item .eg-current { margin-left:auto; }
       .brand .eg-current { margin-left:4px; background:var(--accent-ink,#0b1622); color:var(--accent,#8ab0d9);
         border-color:transparent; }
