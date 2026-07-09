@@ -12,9 +12,11 @@ async function start(){
   DATA=await loadKliniken();
   FEATS=DATA.features;
   FEATS.forEach(f=>{f.properties.entFiltered=0;byId.set(f.properties.standort_id,f);});
+  if(typeof applyCuratedAp4Fixtures==="function")applyCuratedAp4Fixtures(FEATS,byId);
   // Normalisierten Such-Blob je Feature vorberechnen: Name, Träger, Ort, Region
   // plus je Entwicklung deren Themen und je Meldung deren Schlagzeile.
   FEATS.forEach(f=>{const p=f.properties;const parts=[p.name,p.traeger,p.city,p.region];(p.developments||[]).forEach(d=>{(d.topics||[]).forEach(t=>parts.push(t));(d.items||[]).forEach(m=>parts.push(m.titel));});p._searchBlob=searchNorm(parts.join(" "));});
+  applyDossierState(dossierFromUrl());
   addClinicLayers();
   renderPanel();
   goHome(0);

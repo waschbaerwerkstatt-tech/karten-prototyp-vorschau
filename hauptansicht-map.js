@@ -86,6 +86,10 @@ function applyForeignCountryLabelMask(){
 
 /* ============ State ============ */
 const state={selectedId:null,rangeDays:0,topics:new Set(),query:"",topOnly:false,
+  personalienFilter:"all", // all | only | without — Default zeigt Personalien plus Artikel
+  processFilter:null,      // null | insolvenzverfahren | traegerwechsel | standortschliessung
+  dossier:null,
+  dossierProcessFilters:null,
   frozen:null,       // {clusterId, center:[lng,lat], ids:Set<standort_id>, zoom} — eingefrorener Cluster-Bereich (zoom = Karten-Zoom beim Einfrieren)
   bereichTab:"feed", // Umschalter im Bereichs-Panel: feed | kliniken (Endnutzer-Wahl)
   period:null,       // kalendarische Suche: {level:"kw"|"monat"|"quartal", value} oder null. Gegenseitig exklusiv zum Tages-Preset (rangeDays).
@@ -165,10 +169,37 @@ function inRange(iso){
 }
 function topicMatch(topics){return state.topics.size===0 || (topics||[]).some(t=>state.topics.has(t));}
 function devTop(d){return (d.items||[]).length>=TOP_MIN_MELDUNGEN;}   // "Top"-Prädikat: Kettenlänge aus dem Export, kein Daten-Flag
-function devVisible(d){return inRange(d.end)&&topicMatch(d.topics)&&(!state.topOnly||devTop(d));}   // Filter-Kopplung: zählt diese Entwicklung? (deckt Cluster + Panel)
+function personalienAllowed(d){
+  const isPersonalie=d.ap4Kind==="personalie";
+  if(state.personalienFilter==="only")return isPersonalie;
+  if(state.personalienFilter==="without")return !isPersonalie;
+  return true;
+}
+const ACTIVE_PROCESS_STATES={
+  insolvenzverfahren:new Set(["Antrag","Eröffnung (Eigenverwaltung)","Eröffnung (Schutzschirm)"]),
+  traegerwechsel:new Set(["Ankündigung","Verfahren/Verhandlung"]),
+  standortschliessung:new Set(["angekündigt","beschlossen","vollzogen"]),
+};
+function activeProcessState(v){
+  const states=ACTIVE_PROCESS_STATES[v.typ];
+  return states?states.has(v.zustand):true;
+}
+function activeProcessMatch(d,filters=null){
+  if(d.ap4Kind!=="vorgang"||!d.vorgang)return false;
+  const wanted=filters||state.dossierProcessFilters||(state.processFilter?[state.processFilter]:null);
+  if(!wanted||!wanted.length)return true;
+  if(!wanted.includes(d.vorgang.typ))return false;
+  return activeProcessState(d.vorgang);
+}
+function processAllowed(d){
+  const wanted=state.dossierProcessFilters||(state.processFilter?[state.processFilter]:null);
+  if(!wanted||!wanted.length)return true;
+  return activeProcessMatch(d,wanted);
+}
+function devVisible(d){return inRange(d.end)&&topicMatch(d.topics)&&personalienAllowed(d)&&processAllowed(d)&&(!state.topOnly||devTop(d));}   // Filter-Kopplung: zählt diese Entwicklung? (deckt Cluster + Panel)
 /* Wie devVisible, aber OHNE Themen-Bedingung: für die Label-Zähler je Thema-Chip
    (Zeitraum + Top + Suche zählen mit, die Themen-Auswahl selbst nicht). */
-function devVisibleNoTopic(d){return inRange(d.end) && (!state.topOnly||devTop(d));}
+function devVisibleNoTopic(d){return inRange(d.end)&&personalienAllowed(d)&&processAllowed(d)&&(!state.topOnly||devTop(d));}
 /* Suchnormalisierung: Groß/klein + Umlaut-Faltung + Akzent-Strippen (kein Fuzzy/Levenshtein). */
 function searchNorm(s){return String(s==null?"":s).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").normalize("NFD").replace(/[̀-ͯ]/g,"");}
 function queryOk(f){
@@ -216,9 +247,12 @@ map.addControl(new maplibregl.NavigationControl({showCompass:false}),"bottom-rig
 function currentCollection(){
   const feats=visibleFeats();
   const fz=state.frozen;
+  const processActive=!!(state.processFilter||(state.dossierProcessFilters&&state.dossierProcessFilters.length));
   feats.forEach(f=>{
     f.properties.entFiltered=countDevs(f);   // nur die ausgelieferten Features zählen
     f.properties._frozenMember=(fz&&fz.ids.has(f.properties.standort_id))?1:0;   // P7: speist clusterProperties.frozenCount
+    const devs=f.properties.developments||[];
+    f.properties._processDimmed=processActive&&!devs.some(d=>activeProcessMatch(d))?1:0;   // AP4: Nichttreffer bleiben als gedimmte Basispunkte sichtbar.
   });
   return {type:"FeatureCollection",features:feats};
 }
@@ -299,9 +333,9 @@ function addClinicLayers(){
     "circle-color":P.halo,"circle-radius":9,"circle-blur":0.6,"circle-opacity":P.haloOp}});
   map.addLayer({id:"points",type:"circle",source:SRC,filter:singleDev,paint:{
     "circle-color":colorExpr(["==",["get","entFiltered"],0],["get","entFiltered"],STOPS_PT,P.ramp),
-    "circle-radius":5,"circle-opacity":0.95,"circle-stroke-width":P.strokeWPt,"circle-stroke-color":P.stroke}});
+    "circle-radius":5,"circle-opacity":["case",["==",["coalesce",["get","_processDimmed"],0],1],0.22,0.95],"circle-stroke-width":P.strokeWPt,"circle-stroke-color":P.stroke}});
   map.addLayer({id:"points-idle",type:"circle",source:SRC,filter:singleIdle,minzoom:IDLE_MINZOOM,paint:{
-    "circle-color":P.ramp[0],"circle-radius":5,"circle-opacity":0.95,
+    "circle-color":P.ramp[0],"circle-radius":5,"circle-opacity":["case",["==",["coalesce",["get","_processDimmed"],0],1],0.16,0.95],
     "circle-stroke-width":P.strokeWPt,"circle-stroke-color":P.stroke}});
   // Hervorhebungs-Ring für die Mitglieder-Punkte (greift, wenn der Cluster beim Reinzoomen zerfällt).
   map.addLayer({id:"points-active",type:"circle",source:SRC,filter:["in",["get","standort_id"],["literal",["__none__"]]],
@@ -412,6 +446,21 @@ function zoomToBereich(){
 }
 /* Suche definiert die Grundgesamtheit neu -> hebt einen aktiven Bereich auf. */
 function dropBereich(){ if(state.frozen)state.frozen=null; }
+
+function dossierFromUrl(){
+  try{
+    const key=new URLSearchParams(window.location.search).get("dossier");
+    return key&&CURATED_DOSSIERS&&CURATED_DOSSIERS[key]?key:null;
+  }catch(_){return null;}
+}
+function applyDossierState(key){
+  const d=key&&CURATED_DOSSIERS[key]; if(!d)return;
+  state.dossier=key;
+  state.dossierProcessFilters=d.processFilters&&d.processFilters.length?d.processFilters.slice():null;
+  state.processFilter=d.processFilters&&d.processFilters.length===1?d.processFilters[0]:null;
+  state.personalienFilter=d.personalienFilter||"all";
+  state.selectedId=null; state.frozen=null; state.bereichTab="feed";
+}
 
 /* Klick auf Einzelklinik -> Standort-Panel (kein Popup). */
 ["points","points-idle"].forEach(l=>map.on("click",l,e=>{const id=e.features[0].properties.standort_id;if(id)selectLocation(id);}));

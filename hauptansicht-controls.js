@@ -1,11 +1,13 @@
 /* ============ Init Controls ============ */
 let placeThumbRef=null;
 let syncPeriodRef=null;   // füllt/markiert den Kalenderfilter (Ebene + Periode) aus state.period
+// Trigger je data-open-Zustand: Zeit/Themen (nur ≤1540px) + Facetten (alle Breiten).
+const FILTER_TRIGGERS={time:"trigTime",topics:"trigTopics",personalien:"trigPersonalien",process:"trigVorgang"};
 function closeFilterPop(){
   const fb=document.getElementById("filterbar"); if(!fb)return;
   fb.setAttribute("data-open","none");
-  const a=document.getElementById("trigTime"),b=document.getElementById("trigTopics");
-  if(a)a.classList.remove("active"); if(b)b.classList.remove("active");
+  Object.values(FILTER_TRIGGERS).forEach(id=>{const el=document.getElementById(id);
+    if(el){el.classList.remove("active");el.setAttribute("aria-expanded","false");}});
 }
 function syncFilterTriggers(){
   const tl=document.getElementById("trigTimeLabel");
@@ -122,6 +124,13 @@ function syncFilterTriggers(){
   if(topPill)topPill.addEventListener("click",()=>setTopOnly(!state.topOnly));
   syncTopOnly();
 
+  document.querySelectorAll("#personalienSeg .personalien-opt").forEach(o=>
+    o.addEventListener("click",()=>setPersonalienFilter(o.dataset.personalien||"all")));
+  document.querySelectorAll("#processSeg .process-opt").forEach(o=>
+    o.addEventListener("click",()=>setProcessFilter(o.dataset.process||null)));
+  syncPersonalienFilter();
+  syncProcessFilter();
+
   // Suche: entprellt, damit Cluster-Rebuild + Re-Clustering nicht je Tastendruck läuft.
   const search=document.getElementById("search");
   let searchT=null;
@@ -150,20 +159,20 @@ function syncFilterTriggers(){
 /* ============ Mobile-Filter: Trigger öffnen/schließen die Optionen ============ */
 (function initFilterTriggers(){
   const fb=document.getElementById("filterbar");
-  const trigTime=document.getElementById("trigTime");
-  const trigTopics=document.getElementById("trigTopics");
   function toggle(which){
     const cur=fb.getAttribute("data-open")||"none";
     const next=(cur===which)?"none":which;
     fb.setAttribute("data-open",next);
-    trigTime.classList.toggle("active",next==="time");
-    trigTopics.classList.toggle("active",next==="topics");
+    Object.entries(FILTER_TRIGGERS).forEach(([k,id])=>{const el=document.getElementById(id);
+      if(el){const on=next===k;el.classList.toggle("active",on);el.setAttribute("aria-expanded",String(on));}});
     if(next==="time"&&placeThumbRef)placeThumbRef();
   }
-  trigTime.addEventListener("click",e=>{e.stopPropagation();toggle("time");});
-  trigTopics.addEventListener("click",e=>{e.stopPropagation();toggle("topics");});
+  Object.entries(FILTER_TRIGGERS).forEach(([k,id])=>{const el=document.getElementById(id);
+    if(el)el.addEventListener("click",e=>{e.stopPropagation();toggle(k);});});
   fb.addEventListener("click",e=>e.stopPropagation());
   document.addEventListener("click",closeFilterPop);
+  // Offenes Facetten-Dropdown bei Breitenwechsel schließen (Absolut-Position wird sonst schief).
+  addEventListener("resize",closeFilterPop);
   syncFilterTriggers();
 })();
 

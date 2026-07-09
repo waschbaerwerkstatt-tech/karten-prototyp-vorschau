@@ -284,6 +284,33 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
 .topseg-opt:hover{color:var(--text)}
 .topseg-opt.on,.topseg-opt.on:hover{background:var(--accent);color:var(--accent-ink)}
 
+/* Facetten-Filter (Personalien, Vorgänge, #373): kompakter Trigger + Dropdown bei
+   ALLEN Breiten, statt dauerhaft ausgeklapptem Segment. Nutzt die filterbar-
+   data-open-Mechanik (nur ein Popover offen, schließt bei Auswahl/Außenklick). */
+.facet{position:relative;flex:none;display:inline-flex}
+.facet-trigger{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;flex:none;
+  border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
+  box-shadow:var(--shadow);color:var(--text);font-family:'Inter';font-weight:600;font-size:12.5px;
+  cursor:pointer;white-space:nowrap;transition:color .2s,background .2s,border-color .2s}
+.facet-trigger>.material-symbols-outlined:first-child{font-size:17px;color:var(--text-dim)}
+.facet-trigger:hover{border-color:var(--line-strong)}
+.facet-trigger .caret{margin-left:-2px;font-size:18px;color:var(--text-dim);transition:transform .2s}
+.facet-trigger .facet-dot{width:7px;height:7px;border-radius:999px;background:var(--accent);flex:none}
+.facet-trigger.active{border-color:var(--accent)}
+.facet-trigger.active>.material-symbols-outlined:first-child,.facet-trigger.active .caret{color:var(--accent)}
+.facet-trigger.active .caret{transform:rotate(180deg)}
+.facet-pop{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:40;flex-direction:column;gap:2px;
+  min-width:max-content;padding:6px;border-radius:14px;border:1px solid var(--line);background:var(--panel);
+  backdrop-filter:blur(var(--blur-float));box-shadow:var(--shadow)}
+.facet-trigger.active + .facet-pop{display:flex}
+.facet-opt{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border:none;border-radius:9px;
+  background:none;color:var(--text-dim);font-family:'Inter';font-weight:600;font-size:12.5px;cursor:pointer;
+  white-space:nowrap;text-align:left;transition:color .15s,background .15s}
+.facet-opt:hover{color:var(--text);background:rgba(127,127,127,.12)}
+.facet-opt.on,.facet-opt.on:hover{background:var(--accent);color:var(--accent-ink)}
+/* Dropdown darf den (horizontal scrollenden) Filterbar-Overflow verlassen, solange offen. */
+.filterbar[data-open="personalien"],.filterbar[data-open="process"]{overflow:visible}
+
 /* Top-Schalter mobil (Variante 1·B): Icon-Pille „★ Top", kippt den Zustand. Nur auf Mobile sichtbar. */
 .top-pill{display:none;align-items:center;gap:6px;height:34px;padding:0 13px 0 11px;flex:none;
   border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));

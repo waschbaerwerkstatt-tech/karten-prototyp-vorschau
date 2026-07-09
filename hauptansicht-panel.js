@@ -34,6 +34,7 @@ function visibleDevelopments(feats){
   feats.forEach(f=>{
     (f.properties.developments||[]).forEach(d=>{
       if(!topicMatch(d.topics))return;
+      if(!personalienAllowed(d)||!processAllowed(d))return;
       if(state.topOnly&&!devTop(d))return;
       out.push({f,d});
     });
@@ -151,6 +152,29 @@ function wireFeedStories(){
   });
 }
 
+function sparkline(values){
+  const max=Math.max(1,...values);
+  return `<span class="mini-spark dossier-sparkline">${values.map(v=>`<i class="${v>0?'hot':''}" style="height:${3+Math.round(v/max*17)}px"></i>`).join("")}</span>`;
+}
+function dossierMetricsHtml(d){
+  const m=d.metrics||{};
+  return `<div class="id-stat-row dossier-metrics">
+    <span class="id-stat-chip"><b>${fmtNum(m.currentVerfahren)}</b>&thinsp;aktuelle Verfahren</span>
+    <span class="id-stat-chip"><b>${fmtNum(m.latestStateChanges)}</b>&thinsp;jüngste Zustandswechsel</span>
+    <span class="id-stat-chip">${sparkline(m.trend12m||[])}12-Monats-Trend</span>
+  </div>`;
+}
+function renderDossierHead(){
+  const d=state.dossier&&CURATED_DOSSIERS[state.dossier];
+  if(!d)return "";
+  return `<div class="dossier-head" data-dossier="${esc(state.dossier)}">
+    <div class="eyebrow">Dossier</div>
+    <h3>${esc(d.label)}</h3>
+    <p>${esc(d.description)}</p>
+    ${dossierMetricsHtml(d)}
+  </div>`;
+}
+
 /* Feed ohne Auswahl: gebuendelt je Entwicklung (Karussell-Karten), Top-Entwicklungen
    zuerst (zweistufig wie Variante 3), "Top" = devTop (Kette >= TOP_MIN_MELDUNGEN). */
 function renderFeed(){
@@ -164,14 +188,14 @@ function renderFeed(){
     <div class="feed-sub"><span class="live-dot"></span>${fmtNum(top.length)} Top-Artikel · ${fmtNum(gesamtMeldungen)} Artikel aus ${rangeLabel()}</div>`;
 
   if(!list.length){
-    body.innerHTML=`<div class="empty">Keine Artikelketten im gewählten Zeitraum oder Filter.</div>`;
+    body.innerHTML=renderDossierHead()+`<div class="empty">Keine Artikelketten im gewählten Zeitraum oder Filter.</div>`;
     return;
   }
 
-  let html="";
+  let html=renderDossierHead();
   if(state.topOnly||rest.length===0){
     // Nur Karten, ohne Band-Header (entweder Top-Filter aktiv oder es gibt nur Top-Karten).
-    html=truncated(list,FEED_STORY_LIMIT,feedStoryCard,"weitere Artikelketten — Zeitraum, Thema oder Suche eingrenzen.");
+    html+=truncated(list,FEED_STORY_LIMIT,feedStoryCard,"weitere Artikelketten — Zeitraum, Thema oder Suche eingrenzen.");
   }else{
     // Zweistufig: Top-Artikel zuerst, dann Weitere Artikel. Gesamt-Karten auf ~40 begrenzt.
     const topBudget=Math.min(FEED_STORY_LIMIT,top.length);
@@ -344,6 +368,24 @@ function standortStoryCard(f,d){
       ${carouselHTML(d.items)}
     </div>`;
 }
+function standortVorgangSection(f){
+  const vorgaenge=(f.properties.developments||[]).filter(d=>d.ap4Kind==="vorgang"&&d.vorgang).map(d=>d.vorgang);
+  if(!vorgaenge.length)return "";
+  return `<div class="section vorgang-section">
+    <div class="timeline-head"><div class="eyebrow">Vorgänge</div><div class="count">Stand: ${esc(vorgaenge[0].stand)}</div></div>
+    ${vorgaenge.map(v=>`<div class="vorgang-card" data-process-zustand="${esc(v.zustand)}">
+      <div class="story-head"><div class="story-tags"><span class="topic-tag">${esc(v.label)}</span><span class="topic-tag">${esc(v.zustand)}</span></div></div>
+      <h4 class="st-title">${esc(v.titel)}</h4>
+      <div class="vorgang-history">${v.zustandsHistorie.map(t=>{
+        const artikel=CURATED_VORGANG_ARTIKEL[t.belegArtikelId]||{};
+        const link=safeUrl(artikel.url);
+        const label=`${fmtDate(t.datum)} · ${t.zustand}`;
+        return `<div class="vorgang-step"><b>${esc(label)}</b>${link?`<a class="st-src" href="${esc(link)}" target="_blank" rel="noopener">Quelle: ${esc(artikel.quelle)}<span class="material-symbols-outlined st-ext" aria-hidden="true">north_east</span></a>`:""}</div>`;
+      }).join("")}</div>
+      <div class="modal-note">Stand: ${fmtDate(v.stand)}</div>
+    </div>`).join("")}
+  </div>`;
+}
 /* Reiner HTML-Bauer fuer den Standort-Body: optionale Themen-Sektion und der
    Meldungs-Verlauf (Story-Karten je sichtbarer Entwicklung). */
 function standortBody(f){
@@ -358,6 +400,7 @@ function standortBody(f){
   const totalM=devs.reduce((s,d)=>s+d.items.length,0);
   const storyCards=devs.map(d=>standortStoryCard(f,d)).join("");
   return `${topicSection}
+    ${standortVorgangSection(f)}
     <div class="section" style="margin-top:${present.length?16:10}px">
       <div class="timeline-head"><div class="eyebrow">Artikel-Verlauf</div>
         <div class="count">${devs.length} Artikelketten · ${totalM} Artikel</div></div>
@@ -492,6 +535,8 @@ function syncControls(){
   syncTopicChips();
   syncFilterTriggers();
   syncTopOnly();
+  syncPersonalienFilter();
+  syncProcessFilter();
   if(typeof syncPeriodRef==="function")syncPeriodRef();   // Kalenderfilter (Ebene + Periode) spiegeln
   updateTopicCounts();
 }
@@ -574,6 +619,40 @@ function syncTopOnly(){
   });
   const pill=document.getElementById("topPillMobile");
   if(pill){pill.classList.toggle("on",state.topOnly);pill.setAttribute("aria-checked",String(state.topOnly));}
+}
+
+function setPersonalienFilter(value){
+  const next=["all","only","without"].includes(value)?value:"all";
+  if(state.personalienFilter===next)return;
+  state.personalienFilter=next;
+  state.dossier=null; state.dossierProcessFilters=null;
+  commitView({mapSync:"unlessFrozen",closeFilters:true});
+}
+function syncPersonalienFilter(){
+  document.querySelectorAll("#personalienSeg .personalien-opt").forEach(o=>{
+    const on=(o.dataset.personalien||"all")===state.personalienFilter;
+    o.classList.toggle("on",on);
+    o.setAttribute("aria-checked",String(on));
+  });
+  const dot=document.getElementById("dotPersonalien");
+  if(dot)dot.hidden=state.personalienFilter==="all";   // Aktiv-Punkt nur bei Zustand ≠ Default
+}
+function setProcessFilter(value){
+  const next=value||null;
+  if(state.processFilter===next&&!state.dossierProcessFilters)return;
+  state.processFilter=next;
+  state.dossier=null; state.dossierProcessFilters=null;
+  state.selectedId=null; state.frozen=null;
+  commitView({mapSync:"rebuild",closeFilters:true,sheet:"half"});
+}
+function syncProcessFilter(){
+  document.querySelectorAll("#processSeg .process-opt").forEach(o=>{
+    const on=(o.dataset.process||"") === (state.processFilter||"");
+    o.classList.toggle("on",on);
+    o.setAttribute("aria-checked",String(on));
+  });
+  const dot=document.getElementById("dotVorgang");
+  if(dot)dot.hidden=!state.processFilter;   // Aktiv-Punkt nur wenn ein Vorgangstyp gewählt
 }
 
 function setTheme(t){

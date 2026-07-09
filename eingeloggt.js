@@ -30,7 +30,56 @@
     favoritKlinikName: "Marienkrankenhaus",
     landkreis: "Hamburg-Nord",
     bundesland: "Hamburg",
+    zugangsstufe: "analyse_haus",
   };
+  function deriveEgStufe(user) {
+    const key = user.zugangsstufe || "analyse_haus";
+    const stages = {
+      basis: { stufe: "basis", simulator: "gesperrt", downloads: false },
+      analyse_haus: { stufe: "analyse_haus", simulator: "haus", downloads: false },
+      mandat: { stufe: "mandat", simulator: "bundesweit", downloads: true },
+    };
+    return Object.freeze({ ...(stages[key] || stages.analyse_haus) });
+  }
+  window.deriveEgStufe = deriveEgStufe;
+  const ACCESS_STAGE_ALIASES = {
+    Frei: "basis",
+    "Analysen-Lizenz": "analyse_haus",
+  };
+  const accessSubscribers = new Set();
+  function normalizeAccessStage(stage) {
+    return ACCESS_STAGE_ALIASES[stage] || stage || "analyse_haus";
+  }
+  function publishAccessState(next) {
+    window.EG_STUFE = next;
+    document.dispatchEvent(new CustomEvent("eg:stufe", { detail: { stufe: next } }));
+    accessSubscribers.forEach(listener => listener(next));
+    return next;
+  }
+  function getAccessState() {
+    return window.EG_STUFE;
+  }
+  function setAccessStage(stage) {
+    const key = normalizeAccessStage(stage);
+    const next = deriveEgStufe({ zugangsstufe: key });
+    EG_USER.zugangsstufe = next.stufe;
+    return publishAccessState(next);
+  }
+  function subscribeAccess(listener) {
+    accessSubscribers.add(listener);
+    listener(getAccessState());
+    return () => accessSubscribers.delete(listener);
+  }
+  window.EG_STUFE = window.EG_STUFE ? Object.freeze({ ...window.EG_STUFE }) : deriveEgStufe(EG_USER);
+  window.AccessModel = Object.freeze({
+    getAccessState,
+    setAccessStage,
+    subscribeAccess,
+  });
+  function setEgStufe(stage) {
+    return setAccessStage(stage);
+  }
+  window.setEgStufe = setEgStufe;
 
   /* ---- Neu-Markierungen je Ansicht ---- */
   const NEU = {
@@ -224,7 +273,7 @@
     if (!actions || actions.querySelector(".eg-avatar")) return;
     const gear = actions.querySelector('a[href*="einstellungen"]');
     const href = gear ? gear.getAttribute("href")
-      : (CURRENT === "nachrichten" ? "seiten/einstellungen.html" : "einstellungen.html");
+      : (location.pathname.indexOf("/seiten/") >= 0 ? "einstellungen.html" : "seiten/einstellungen.html");
     if (gear) gear.remove();   // Zahnrad weicht dem Avatar
     const a = document.createElement("a");
     a.className = "eg-avatar"; a.href = href;
