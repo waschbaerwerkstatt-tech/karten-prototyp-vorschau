@@ -18,6 +18,13 @@ const TOPICS=["Insolvenz","Investition","Trägerwechsel","Personal","Versorgung"
    nur die doppelte Bedienung faellt weg. */
 const TOPICS_ANDERSWO=new Set(["Insolvenz","Trägerwechsel","Personal"]);
 const TOPICS_ALS_CHIP=TOPICS.filter(t=>!TOPICS_ANDERSWO.has(t));
+/* Symbol je Thema fuer die Menuezeilen im Themen-Dropdown. Bewusst mit Rueckfallwert:
+   TOPICS folgt build_kliniken_geojson.py und darf wachsen, ohne dass hier eine Zeile
+   ohne Symbol entsteht und aus der Reihe faellt. Keine Kollision mit den Vorgangs-
+   symbolen (euro, swap_horiz, block, construction, handshake). */
+const TOPIC_ICON={Investition:"savings",Versorgung:"local_hospital",Reform:"policy",
+  Insolvenz:"euro",Trägerwechsel:"swap_horiz",Personal:"badge"};
+const TOPIC_ICON_FALLBACK="sell";   // dasselbe Symbol wie der Themen-Trigger
 const SRC="kliniken";
 const FEED_STORY_LIMIT=40;  // globaler Feed gebuendelt: max. so viele Story-Karten rendern (DOM-leicht)
 const TOP_MIN_MELDUNGEN=2;  // "Top"-Entwicklung = Kette aus >= so vielen Meldungen; Schwelle an genau einer Stelle (ggf. auf 3 drehen)
@@ -97,8 +104,6 @@ const state={selectedId:null,rangeDays:0,topics:new Set(),query:"",topOnly:false
   personalienFilter:"all", // all | only | without — Default zeigt Personalien plus Artikel
   processFilter:[],        // gewaehlte Vorgangstypen; leer = alle. Seit 2026-07-18 mehrfach
                            // waehlbar (gezaehlte Chips statt Einfachauswahl im Dropdown).
-  dossier:null,
-  dossierProcessFilters:null,
   frozen:null,       // {clusterId, center:[lng,lat], ids:Set<standort_id>, zoom} — eingefrorener Cluster-Bereich (zoom = Karten-Zoom beim Einfrieren)
   bereichTab:"feed", // Umschalter im Bereichs-Panel: feed | kliniken (Endnutzer-Wahl)
   vorgaengeOffen:null, // Vorgangs-Block: null = Vorgabe je Panel-Zustand (nur Standort offen), sonst die Wahl des Nutzers
@@ -198,15 +203,14 @@ function activeProcessState(v){
 }
 function activeProcessMatch(d,filters=null){
   if(d.ap4Kind!=="vorgang"||!d.vorgang)return false;
-  const wanted=filters||state.dossierProcessFilters||(state.processFilter.length?state.processFilter:null);
+  const wanted=filters||(state.processFilter.length?state.processFilter:null);
   if(!wanted||!wanted.length)return true;
   if(!wanted.includes(d.vorgang.typ))return false;
   return activeProcessState(d.vorgang);
 }
 function processAllowed(d){
-  const wanted=state.dossierProcessFilters||(state.processFilter.length?state.processFilter:null);
-  if(!wanted||!wanted.length)return true;
-  return activeProcessMatch(d,wanted);
+  if(!state.processFilter.length)return true;
+  return activeProcessMatch(d,state.processFilter);
 }
 function devVisible(d){return inRange(d.end)&&topicMatch(d.topics)&&personalienAllowed(d)&&processAllowed(d)&&(!state.topOnly||devTop(d));}   // Filter-Kopplung: zählt diese Entwicklung? (deckt Cluster + Panel)
 /* Wie devVisible, aber OHNE Themen-Bedingung: für die Label-Zähler je Thema-Chip
@@ -244,8 +248,30 @@ const rangeLabel=()=>state.period
    Standorte, unter Berücksichtigung von Zeitraum+Top+Suche, aber OHNE die Themen-Auswahl selbst. */
 function countOnTheFly(){const dev={};for(const t of TOPICS)dev[t]=0;for(const f of visibleFeats()){const ds=f.properties.developments;if(!ds)continue;for(const d of ds){if(!devVisibleNoTopic(d))continue;const tp=d.topics;if(!tp)continue;for(const t of tp){if(dev[t]!==undefined)dev[t]++;}}}return dev;}
 /* Frischt sowohl Filterleisten- als auch Panel-Themen-Chips mit der aktuellen Zahl. */
-function updateTopicCounts(){const c=countOnTheFly();document.querySelectorAll(".chip[data-topic]").forEach(ch=>{const s=ch.querySelector(".count-soft");if(s)s.textContent=c[ch.dataset.topic]??0;});}
+/* Deckt beide Bauformen ab: Menuezeile im Dropdown (.fo-n) und Chip am Standort (.count-soft). */
+function updateTopicCounts(){const c=countOnTheFly();document.querySelectorAll("[data-topic]").forEach(ch=>{const s=ch.querySelector(".count-soft,.fo-n");if(s)s.textContent=c[ch.dataset.topic]??0;});}
 
+/* Zaehler der beiden Menue-Dropdowns. Gleiches Muster wie devVisibleNoTopic: der eigene
+   Filter zaehlt NICHT mit, sonst stuende auf jeder nicht gewaehlten Zeile eine 0 und man
+   saehe nie, was die andere Wahl braechte. */
+function devVisibleNoTop(d){return inRange(d.end)&&topicMatch(d.topics)&&personalienAllowed(d)&&processAllowed(d);}
+function devVisibleNoPersonalien(d){return inRange(d.end)&&topicMatch(d.topics)&&processAllowed(d)&&(!state.topOnly||devTop(d));}
+function countTopOptionen(){
+  const n={"0":0,"1":0};
+  for(const f of visibleFeats())for(const d of (f.properties.developments||[])){
+    if(!devVisibleNoTop(d))continue;
+    n["0"]++; if(devTop(d))n["1"]++;
+  }
+  return n;
+}
+function countPersonalienOptionen(){
+  const n={all:0,only:0,without:0};
+  for(const f of visibleFeats())for(const d of (f.properties.developments||[])){
+    if(!devVisibleNoPersonalien(d))continue;
+    n.all++; if(d.ap4Kind==="personalie")n.only++; else n.without++;
+  }
+  return n;
+}
 /* Wie devVisible, aber OHNE die Vorgangs-Bedingung — analog zu devVisibleNoTopic.
    Noetig fuer die Zaehler auf den Vorgangs-Chips: zaehlte man mit aktivem Vorgangsfilter,
    fielen die nicht gewaehlten Typen sofort auf 0 und man saehe nie, was man verpasst. */
@@ -278,7 +304,7 @@ map.addControl(new maplibregl.NavigationControl({showCompass:false}),"bottom-rig
 function currentCollection(){
   const feats=visibleFeats();
   const fz=state.frozen;
-  const processActive=!!(state.processFilter.length||(state.dossierProcessFilters&&state.dossierProcessFilters.length));
+  const processActive=!!state.processFilter.length;
   feats.forEach(f=>{
     f.properties.entFiltered=countDevs(f);   // nur die ausgelieferten Features zählen
     f.properties._frozenMember=(fz&&fz.ids.has(f.properties.standort_id))?1:0;   // P7: speist clusterProperties.frozenCount
@@ -477,23 +503,6 @@ function zoomToBereich(){
 }
 /* Suche definiert die Grundgesamtheit neu -> hebt einen aktiven Bereich auf. */
 function dropBereich(){ if(state.frozen)state.frozen=null; }
-
-function dossierFromUrl(){
-  try{
-    const key=new URLSearchParams(window.location.search).get("dossier");
-    return key&&CURATED_DOSSIERS&&CURATED_DOSSIERS[key]?key:null;
-  }catch(_){return null;}
-}
-function applyDossierState(key){
-  const d=key&&CURATED_DOSSIERS[key]; if(!d)return;
-  state.dossier=key;
-  state.dossierProcessFilters=d.processFilters&&d.processFilters.length?d.processFilters.slice():null;
-  // Dossier-Vorfilter uebernimmt seine Typen vollstaendig — nicht mehr nur bei genau einem,
-  // seit die Chips Mehrfachauswahl koennen.
-  state.processFilter=d.processFilters&&d.processFilters.length?d.processFilters.slice():[];
-  state.personalienFilter=d.personalienFilter||"all";
-  state.selectedId=null; state.frozen=null; state.bereichTab="feed";
-}
 
 /* Klick auf Einzelklinik -> Standort-Panel (kein Popup). */
 ["points","points-idle"].forEach(l=>map.on("click",l,e=>{const id=e.features[0].properties.standort_id;if(id)selectLocation(id);}));

@@ -22,25 +22,25 @@ const CURATED_PERSONALIEN=[
 
 const CURATED_VORGAENGE=[
   {id:"vorgang-771011-insolvenz",standortId:"771011",typ:"insolvenzverfahren",label:"Insolvenzverfahren",zustand:"Eröffnung (Schutzschirm)",
-   titel:"Schutzschirmverfahren Harzklinikum",stand:"2026-06-05",topics:["Insolvenz"],dossier:"insolvenzen",kettenIds:["mock-kette-vorgang-771011-insolvenz"],
+   titel:"Schutzschirmverfahren Harzklinikum",stand:"2026-06-05",topics:["Insolvenz"],kettenIds:["mock-kette-vorgang-771011-insolvenz"],
    zustandsHistorie:[
     {zustand:"Antrag",datum:"2026-04-10",belegArtikelId:"mock-artikel-vorgang-771011-20260410"},
     {zustand:"Eröffnung (Schutzschirm)",datum:"2026-06-05",belegArtikelId:"mock-artikel-vorgang-771011-20260605"},
    ]},
   {id:"vorgang-771374-traeger",standortId:"771374",typ:"traegerwechsel",label:"Trägerwechsel",zustand:"Verfahren/Verhandlung",
-   titel:"Übernahme Klinik Hallerwiese",stand:"2026-05-22",topics:["Trägerwechsel"],dossier:"insolvenzen",kettenIds:["mock-kette-vorgang-771374-traeger"],
+   titel:"Übernahme Klinik Hallerwiese",stand:"2026-05-22",topics:["Trägerwechsel"],kettenIds:["mock-kette-vorgang-771374-traeger"],
    zustandsHistorie:[
     {zustand:"Ankündigung",datum:"2026-04-28",belegArtikelId:"mock-artikel-vorgang-771374-20260428"},
     {zustand:"Verfahren/Verhandlung",datum:"2026-05-22",belegArtikelId:"mock-artikel-vorgang-771374-20260522"},
    ]},
   {id:"vorgang-773724-schliessung",standortId:"773724",typ:"standortschliessung",label:"Standortschließung",zustand:"beschlossen",
-   titel:"Schließung Steinlach-Klinik Mössingen",stand:"2026-04-06",topics:["Versorgung"],dossier:"khvvg",kettenIds:["mock-kette-vorgang-773724-schliessung"],
+   titel:"Schließung Steinlach-Klinik Mössingen",stand:"2026-04-06",topics:["Versorgung"],kettenIds:["mock-kette-vorgang-773724-schliessung"],
    zustandsHistorie:[
     {zustand:"angekündigt",datum:"2026-03-15",belegArtikelId:"mock-artikel-vorgang-773724-20260315"},
     {zustand:"beschlossen",datum:"2026-04-06",belegArtikelId:"mock-artikel-vorgang-773724-20260406"},
    ]},
   {id:"vorgang-772995-insolvenz-abgeschlossen",standortId:"772995",typ:"insolvenzverfahren",label:"Insolvenzverfahren",zustand:"Sanierung",
-   titel:"Insolvenzplan für Bremer Krankenhaus abgeschlossen",stand:"2026-02-14",topics:["Insolvenz"],dossier:"insolvenzen",kettenIds:["mock-kette-vorgang-772995-insolvenz"],
+   titel:"Insolvenzplan für Bremer Krankenhaus abgeschlossen",stand:"2026-02-14",topics:["Insolvenz"],kettenIds:["mock-kette-vorgang-772995-insolvenz"],
    zustandsHistorie:[
     {zustand:"Eröffnung (Eigenverwaltung)",datum:"2026-01-20",belegArtikelId:"mock-artikel-vorgang-772995-20260120"},
     {zustand:"Sanierung",datum:"2026-02-14",belegArtikelId:"mock-artikel-vorgang-772995-20260214"},
@@ -49,7 +49,7 @@ const CURATED_VORGAENGE=[
      „geplant/genehmigt" ist presseseitig nicht von der Ankündigung zu trennen.
      Autoritativ: docs/prd/analysen-datenmodell.md, Abschnitt 7. */
   {id:"vorgang-771083-neubau",standortId:"771083",typ:"neubau",label:"Neubau",zustand:"Bau",
-   titel:"Ersatzneubau München Klinik Harlaching",stand:"2026-05-04",topics:["Investition"],dossier:"khvvg",kettenIds:["mock-kette-vorgang-771083-neubau"],
+   titel:"Ersatzneubau München Klinik Harlaching",stand:"2026-05-04",topics:["Investition"],kettenIds:["mock-kette-vorgang-771083-neubau"],
    zustandsHistorie:[
     {zustand:"Ankündigung",datum:"2026-01-16",belegArtikelId:"mock-artikel-vorgang-771083-20260116"},
     {zustand:"Bau",datum:"2026-05-04",belegArtikelId:"mock-artikel-vorgang-771083-20260504"},
@@ -58,7 +58,7 @@ const CURATED_VORGAENGE=[
      Deshalb Thema „Versorgung" und nicht „Trägerwechsel" — wird aus der Kooperation später
      doch eine Übernahme, entsteht ein verlinkter Folge-Vorgang Trägerwechsel. */
   {id:"vorgang-772828-kooperation",standortId:"772828",typ:"kooperation",label:"Kooperation",zustand:"Ankündigung",
-   titel:"Verbund Klinikum Bremen Nord und Bremerhaven",stand:"2026-06-11",topics:["Versorgung"],dossier:"khvvg",kettenIds:["mock-kette-vorgang-772828-kooperation"],
+   titel:"Verbund Klinikum Bremen Nord und Bremerhaven",stand:"2026-06-11",topics:["Versorgung"],kettenIds:["mock-kette-vorgang-772828-kooperation"],
    zustandsHistorie:[
     {zustand:"Ankündigung",datum:"2026-06-11",belegArtikelId:"mock-artikel-vorgang-772828-20260611"},
    ]},
@@ -78,20 +78,9 @@ const CURATED_VORGANG_ARTIKEL={
   "mock-artikel-vorgang-772828-20260611":{quelle:"Weser Kurier",url:"https://example.org/bremen-nord-verbund",titel:"Bremen Nord und Bremerhaven kündigen Klinikverbund an"},
 };
 
-const CURATED_DOSSIERS={
-  insolvenzen:{label:"Insolvenzen & Trägerwechsel",href:"hauptansicht.html?dossier=insolvenzen",
-    description:"Laufende Verfahren, Trägerwechsel und jüngste Zustandswechsel mit Standortbezug.",
-    processFilters:["insolvenzverfahren","traegerwechsel"],personalienFilter:"all",
-    metrics:{currentVerfahren:2,latestStateChanges:3,trend12m:[1,1,2,2,2,3,3,4,3,3,2,2]}},
-  khvvg:{label:"Krankenhausreform (KHVVG)",href:"hauptansicht.html?dossier=khvvg",
-    description:"Reformnahe Standortschließungen, Neubauten, Verbünde und belegte Folgen.",
-    processFilters:["standortschliessung","neubau","kooperation"],personalienFilter:"all",
-    metrics:{currentVerfahren:3,latestStateChanges:5,trend12m:[0,0,1,1,1,2,2,3,3,3,2,3]}},
-  personal:{label:"Fachkräftemangel & Personal",href:"hauptansicht.html?dossier=personal",
-    description:"Personalien und Personalthemen als belegte Ereignisse, nicht als Vita-Seiten.",
-    processFilters:[],personalienFilter:"only",
-    metrics:{currentVerfahren:3,latestStateChanges:3,trend12m:[1,2,2,2,3,3,3,2,2,3,3,3]}},
-};
+/* CURATED_DOSSIERS stand hier bis 2026-07-18 (drei kuratierte Einstiege mit Vorfilter und
+   handgesetzten Kennzahlen). Entfernt — Begruendung und die offenen Fragen fuer eine spaetere
+   Umsetzung: docs/prd/karten-frontend.md, „Zurueckgestellt: kuratierte Dossiers". */
 
 const PERSONALIE_ROLLE_LABEL={gf:"Geschäftsführung",chefarzt:"Chefarzt",pflegedirektion:"Pflegedirektion",ministerium_verband:"Ministerium/Verband"};
 const PERSONALIE_RICHTUNG_LABEL={antritt:"Antritt",abgang:"Abgang",wechsel:"Wechsel"};

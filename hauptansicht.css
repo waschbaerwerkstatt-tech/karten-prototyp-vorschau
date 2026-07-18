@@ -227,27 +227,12 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
   font-weight:600;white-space:nowrap;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
 .chip:hover{color:var(--text);border-color:var(--line-strong)}
 .chip.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
-#topicChips{display:flex;flex-wrap:wrap;gap:8px}
-
-/* ============ Themen-Dropdown: eine Flaeche, zwei Gruppen ============
-   Feste, grosszuegige Breite statt min-content: vorher deckelte max-width:300px auf
-   #topicChips die Themen auf zwei pro Zeile, waehrend die Vorgangs-Chips darunter ungebremst
-   breiter liefen — daher der Versatz. Beide Gruppen fliessen jetzt ueber dieselbe Breite. */
-/* max-width statt width: das Popup waechst mit dem Inhalt (die Basisregel .facet-pop setzt
-   min-width:max-content) und deckelt erst, wenn es zu breit wuerde. Eine feste Breite
-   reservierte Platz, den drei kurze Chips nicht fuellen. */
-#topicsPop{max-width:min(560px,calc(100vw - 24px));padding:12px 13px 13px}
-/* Chips im Popup liegen flach: Schatten und Blur gehoeren auf die schwebende Filterleiste,
-   auf einer bereits schwebenden Flaeche waeren sie doppelt. Beide Gruppen teilen Hoehe,
-   Schriftgrad und Fuellung, damit sie als ein System lesen. */
-#topicsPop .chip{height:30px;padding:0 12px;font-size:12px;background:var(--chip);
-  backdrop-filter:none;box-shadow:none}
-#topicsPop .chip.on{background:var(--accent)}
-/* Chips wachsen auf die Zeilenbreite mit: sonst endet eine kurze Gruppe (drei Themen) weit
-   vor dem Rand, waehrend die laengere daneben bis zum Rand laeuft — genau der ausgefranste
-   Eindruck. Mit flex:1 rasten beide Gruppen zu gleich breiten Spalten ein, und der Umbruch
-   bleibt erhalten, falls spaeter mehr Chips dazukommen. */
-#topicsPop .chip,#topicsPop .process-chip{flex:1 1 auto;justify-content:center}
+/* Das Themen-Dropdown ist seit 2026-07-18 ein Menue wie Top und Personalien (.facet-pop--menu):
+   untereinander stehende Zeilen statt zweier verschieden breit laufender Chip-Wolken. Damit
+   entfaellt die ganze Breiten- und Ausrichtungsakrobatik, die es vorher brauchte, um die zwei
+   Gruppen buendig zu bekommen. Themen am STANDORT bleiben Chips (.chip) — dort stehen sie in
+   einer Zeile neben dem Kliniknamen, nicht in einem Menue. */
+#topicChips{display:flex;flex-direction:column;gap:2px}
 .count-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--accent);
   color:var(--accent-ink);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .count-badge.is-empty{display:none}
@@ -325,6 +310,28 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
   white-space:nowrap;text-align:left;transition:color .15s,background .15s}
 .facet-opt:hover{color:var(--text);background:rgba(127,127,127,.12)}
 .facet-opt.on,.facet-opt.on:hover{background:var(--accent);color:var(--accent-ink)}
+/* Menue-Dropdown (Top, Personalien): dieselben Bausteine wie das Themen-Dropdown nebenan —
+   Gruppenkopf mit Hinweis, dann Zeilen aus Symbol, Beschriftung und Zahl. Ohne die Zahlen
+   fielen die beiden aus der Reihe: jede andere Wahl in dieser Leiste sagt, wie viel dahinter
+   steckt. Die Zahl zaehlt ohne den eigenen Filter (countTopOptionen/countPersonalienOptionen),
+   sonst stuende auf der nicht gewaehlten Zeile immer 0. */
+.facet-pop--menu{min-width:238px;padding:9px}
+.facet-pop--menu .pop-group-head{margin:1px 3px 7px}
+.facet-pop--menu .facet-opt{gap:10px;height:36px;padding:0 9px;width:100%}
+.facet-opt .fo-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.facet-opt>.material-symbols-outlined{font-size:18px;flex:none;color:var(--text-faint);transition:color .2s}
+.facet-opt .fo-n{font-size:11px;font-weight:800;min-width:18px;height:18px;padding:0 5px;flex:none;
+  border-radius:999px;background:var(--chip-2);color:var(--text-dim);font-family:'Manrope';
+  display:inline-flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
+.facet-opt:hover>.material-symbols-outlined{color:var(--text-dim)}
+.facet-opt.on>.material-symbols-outlined{color:var(--accent-ink);
+  font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
+.facet-opt.on .fo-n{background:var(--accent-ink);color:var(--accent)}
+/* Gewaehlte Zeile: das Glyphenpaar liegt auf der Akzentflaeche, also Saum und Farben
+   mitziehen — sonst schneidet der Durchstrich in der falschen Farbe durch. */
+.facet-opt.on{--strike-bg:var(--accent)}
+.facet-opt.on .gi{color:var(--accent-ink)}
+.facet-opt.on .gi.off{color:var(--accent-ink);opacity:.55}
 /* Ein offenes Dropdown darf den (horizontal scrollenden) Filterbar-Overflow verlassen.
    Zusaetzlich muss die Leiste selbst ueber das Panel steigen: .filterbar und .panel liegen
    beide auf z-index 30, und das spaeter im DOM stehende Panel gewinnt den Gleichstand. Weil
@@ -335,15 +342,13 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
    weit genug rechts aufklappt, um das Panel zu erreichen.) */
 .filterbar:not([data-open="none"]){overflow:visible;z-index:45}
 
-/* Top-Schalter: Icon-Pille „★ Top", kippt den Zustand. Auf allen Breiten sichtbar. */
-.top-pill{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px 0 11px;flex:none;
-  border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(var(--blur-float));
-  box-shadow:var(--shadow);color:var(--text-dim);font-family:'Inter';font-weight:600;font-size:12.5px;
-  cursor:pointer;white-space:nowrap;transition:color .2s,background .2s,border-color .2s}
-.top-pill .material-symbols-outlined{font-size:17px}
-.top-pill:hover{color:var(--text);border-color:var(--line-strong)}
-.top-pill.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
-.top-pill.on .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
+/* Ein aktiver Filter, dessen Trigger seinen Zustand nicht ohnehin im Text zeigt (Top,
+   sobald „Nur Top" gewaehlt ist), meldet sich mit dem Akzentpunkt. Zeitraum traegt den
+   Zustand im Label, Themen im Zaehler, Personalien in den Glyphen — der Punkt ist die
+   vierte Spielart derselben Sache und nie eine zweite Aussage daneben. */
+.facet-trigger .facet-dot[hidden]{display:none}
+.facet-trigger.hat-wahl>.material-symbols-outlined:first-child{color:var(--accent);
+  font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
 
 /* ============ Info-Popup (Erklärung Entwicklung) ============ */
 .modal-backdrop{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
@@ -581,71 +586,39 @@ button.loc-chip{border:0;background:none;padding:0;margin:0;font-family:inherit;
 .mtl .node.cur .lab{color:var(--accent-strong);font-weight:700}
 .mtl .seg{width:18px;height:1px;background:var(--line-strong);flex:none;margin:0 6px}
 
-/* ============ Vorgangs-Chips (im Themen-Dropdown) ============
-   Gezaehlte Toggle-Chips, frei kombinierbar; keine Auswahl bedeutet „alle", deshalb gibt
-   es keinen eigenen „Alle"-Chip. Die Zahl steht direkt auf dem Chip — sie beantwortet
-   „lohnt sich das?" ohne Klick. Seit 2026-07-18 sitzen sie im Themen-Dropdown statt frei
-   in der Leiste: Vorgaenge tragen ohnehin dieselben Themen, zwei aehnlich benannte Filter
-   nebeneinander waren nur verwirrend. Als Gruppe abgesetzt, weil ein Thema Artikel zum
-   Gegenstand sammelt und ein Vorgang ein Verfahren mit Verlauf ist. */
-.pop-group{margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+/* ============ Gruppen im Menue-Dropdown ============
+   Themen und Vorgaenge liegen im selben Dropdown, aber in getrennten, beschrifteten
+   Gruppen: ein Thema sammelt Artikel zum Gegenstand, ein Vorgang ist ein Verfahren mit
+   Verlauf — deshalb sind auch ihre Zahlen unterschiedlich. Beide sind Mehrfachauswahl;
+   keine Auswahl bedeutet „alle", deshalb gibt es keine eigene „Alle"-Zeile.
+   Die Zeilen selbst sind .facet-opt wie in den Top-/Personalien-Dropdowns (2026-07-18):
+   vorher waren es breite Chip-Wolken und das Dropdown fiel als einziges aus der Reihe. */
+.pop-group{margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
 .pop-group-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:9px;
   font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint)}
 .pop-group-head .pgh-hint{font-size:10.5px;font-weight:500;letter-spacing:0;
   text-transform:none;color:var(--text-faint);opacity:.8}
-.process-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-/* Im Dropdown ohne Schatten/Blur — die liegen auf der schwebenden Leiste richtig,
-   auf einer bereits schwebenden Flaeche waeren sie doppelt. */
-.process-chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;flex:none;
-  border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--text-dim);
-  font-family:'Inter';font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap;
-  transition:color .2s,background .2s,border-color .2s,opacity .2s}
-.process-chip .material-symbols-outlined{font-size:16px;color:var(--text-faint);transition:color .2s}
-.process-chip:hover{color:var(--text);border-color:var(--line-strong)}
-.process-chip .pc-n{font-size:11px;font-weight:800;min-width:18px;height:18px;padding:0 5px;
-  border-radius:999px;background:var(--chip-2);color:var(--text-dim);
-  display:inline-flex;align-items:center;justify-content:center;transition:background .2s,color .2s}
-.process-chip.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
-.process-chip.on .material-symbols-outlined{color:var(--accent-ink);
-  font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
-.process-chip.on .pc-n{background:var(--accent-ink);color:var(--accent)}
-/* Typ ohne Treffer bleibt sichtbar, aber gedaempft: die 0 ist selbst eine Aussage. */
-.process-chip.leer{opacity:.5}
+/* Eintrag ohne Treffer bleibt sichtbar, aber gedaempft: die 0 ist selbst eine Aussage. */
+.facet-opt.leer{opacity:.5}
 
-/* ============ Personalien-Pille (Filterleiste) ============
-   Durchschalten statt Dropdown: mit -> nur -> ohne. Zwei feste Glyphen tragen die Bedeutung
-   (Namensschild = Personalien, Nachrichtenblatt = Artikel); sie werden nie getauscht, sondern
-   durchgestrichen. Deshalb kann die Ligatur nicht ins Leere laufen und die Breite nicht springen. */
-.pers-pill{display:inline-flex;align-items:center;gap:9px;height:34px;padding:0 13px;flex:none;
-  border-radius:999px;border:1px solid var(--line);background:var(--panel);
-  backdrop-filter:blur(var(--blur-float));box-shadow:var(--shadow);color:var(--text-dim);
-  font-family:'Inter';font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap;
-  transition:color .2s,background .2s,border-color .2s,opacity .2s;--strike-bg:var(--panel-solid)}
-.pers-pill:hover{color:var(--text);border-color:var(--line-strong)}
-.pers-pill .gset{display:inline-flex;align-items:center;gap:4px}
-.pers-pill .gi{position:relative;display:inline-grid;place-items:center;width:19px;height:19px;
+/* ============ Personalien-Trigger (Filterleiste) ============
+   Seit 2026-07-18 (abends) eine Facette wie die drei anderen; der Trigger traegt nur die
+   zwei Glyphen (Namensschild = Personalien, Nachrichtenblatt = Artikel). Sie werden nie
+   getauscht, sondern durchgestrichen — das zeigt den Zustand ohne Wort. Das Wort war
+   missverstaendlich („mit" wovon?) und steht jetzt ausgeschrieben in den drei Optionen. */
+/* Das Glyphenpaar steht an zwei Stellen: im Trigger (aktueller Stand) und in jeder Option
+   des Dropdowns (Stand, den sie herstellt). Deshalb haengen die Regeln am .gset, nicht am
+   Trigger — eine Definition, zwei Fundorte, garantiert dasselbe Bild. */
+.pers-trigger,.facet-pop--menu{--strike-bg:var(--panel-solid)}
+.gset{display:inline-flex;align-items:center;gap:4px;flex:none}
+.gset .gi{position:relative;display:inline-grid;place-items:center;width:19px;height:19px;
   color:var(--accent);transition:color .2s,opacity .2s}
-.pers-pill .gi .material-symbols-outlined{font-size:18px;line-height:1}
-.pers-pill .gi.off{color:var(--text-faint);opacity:.85}
+.gset .gi .material-symbols-outlined{font-size:18px;line-height:1}
+.gset .gi.off{color:var(--text-faint);opacity:.85}
 /* Saum in der Pillenfarbe, sonst verschwimmt der Strich mit den Eigenlinien des Glyphs. */
-.pers-pill .gi.off::after{content:"";position:absolute;left:-1px;right:-1px;top:50%;height:1.5px;
+.gset .gi.off::after{content:"";position:absolute;left:-1px;right:-1px;top:50%;height:1.5px;
   margin-top:-.75px;background:currentColor;border-radius:2px;transform:rotate(-45deg);
   box-shadow:0 0 0 2px var(--strike-bg)}
-/* Breitenanker: alle drei vollstaendigen Beschriftungen liegen unsichtbar uebereinander in
-   derselben Rasterzelle. Die Zelle ist damit immer so breit wie die laengste — der Wortabstand
-   bleibt natuerlich, weil nicht das Wort, sondern das Label fixiert ist. */
-.pers-pill .plabel{display:inline-grid;justify-items:start}
-.pers-pill .plabel > span{grid-area:1/1;white-space:nowrap}
-.pers-pill .plabel .ghost{visibility:hidden;pointer-events:none}
-.pers-pill .plabel b{font-weight:700;color:var(--text)}
-.pers-pill .pers-hint{font-size:14px;color:var(--text-faint);margin-left:1px}
-.pers-pill.st-only{background:var(--accent);border-color:transparent;color:var(--accent-ink);
-  --strike-bg:var(--accent)}
-.pers-pill.st-only .plabel b{color:var(--accent-ink)}
-.pers-pill.st-only .gi{color:var(--accent-ink)}
-.pers-pill.st-only .gi.off{color:var(--accent-ink);opacity:.55}
-.pers-pill.st-only .pers-hint{color:var(--accent-ink);opacity:.7}
-.pers-pill.st-without{opacity:.78}
 
 /* ============ Karten-Cluster ============ */
 /* Pins sind native MapLibre-Circle/Symbol-Layer (kein DOM-Marker, kein Marker-Swim).
@@ -785,7 +758,18 @@ a.st-src:hover .st-ext{color:var(--accent)}
      unter der Leiste. */
   .filterbar{left:12px;right:12px;top:60px}
   .facet-pop{position:fixed;left:12px;right:12px;top:108px;min-width:0;max-height:62vh;overflow:auto}
-  .facet-pop #topicChips{max-width:none}
+  /* Letzte Reserve, damit die vier Trigger auf die Zeile passen: das Wort „Top" fällt, der
+     Stern trägt allein. Bewusst nur hier und nur bei Top — der Stern ist das eindeutigste
+     der vier Symbole, und die Beschriftung steht ohnehin im Dropdown. Zusammen mit dem
+     engeren Innenabstand bringt das die Leiste auf ~376px: ab 390px-Geräten passt alles
+     ohne Wischen, auf dem 375er bleibt ein Rest — dort schaut „Themen" angeschnitten
+     herein und lädt genau dazu ein. */
+  .facet-trigger .trig-wort{display:none}
+  /* Zeitraum: nur das Ruhewort „Alle" faellt, gewaehlte Zeitraeume bleiben lesbar (siehe
+     syncFilterTriggers). Im Ruhezustand passen damit alle vier Trigger auf die Zeile. */
+  .facet-trigger.ist-ruhe #trigTimeLabel{display:none}
+  .facet-trigger{padding:0 10px;gap:5px}
+  .filterbar{gap:6px}
 
   /* Panel -> Bottom-Sheet: links/rechts bündig, Höhe per Stufe (JS) */
   .panel{left:0;right:0;bottom:0;top:auto;width:auto;height:52vh;

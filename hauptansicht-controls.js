@@ -1,11 +1,10 @@
 /* ============ Init Controls ============ */
 let placeThumbRef=null;
 let syncPeriodRef=null;   // füllt/markiert den Kalenderfilter (Ebene + Periode) aus state.period
-// Trigger je data-open-Zustand: Zeit/Themen (nur ≤1540px) + Facetten (alle Breiten).
-/* Personalien und Vorgaenge fehlen hier bewusst: seit 2026-07-18 sind das eine
-   Durchschalt-Pille (#persPill) bzw. gezaehlte Chips (#processChips) — beide ohne
-   Dropdown, also ohne Trigger zum Auf-/Zuklappen. */
-const FILTER_TRIGGERS={time:"trigTime",topics:"trigTopics"};
+/* Alle vier Filter der Leiste sind Facetten mit demselben Trigger+Dropdown-Idiom, auf
+   Desktop wie Mobil. Die Vorgaenge sind bewusst KEIN eigener Eintrag: sie leben als
+   gezaehlte Chips in der zweiten Gruppe des Themen-Dropdowns. */
+const FILTER_TRIGGERS={time:"trigTime",top:"trigTop",pers:"trigPers",topics:"trigTopics"};
 function closeFilterPop(){
   const fb=document.getElementById("filterbar"); if(!fb)return;
   fb.setAttribute("data-open","none");
@@ -16,6 +15,13 @@ function syncFilterTriggers(){
   const tl=document.getElementById("trigTimeLabel");
   // Aktive Kalender-Periode hat Vorrang im Trigger-Label (Exklusivität zum Tages-Preset).
   if(tl)tl.textContent=state.period?periodLabel(state.period):{7:"7 Tage",30:"30 Tage",0:"Alle"}[state.rangeDays];
+  /* „Alle" ist der Ruhezustand und damit eine Nicht-Aussage — mobil faellt das Label dann
+     weg (CSS), die Uhr steht allein wie Stern und Glyphen. Sobald ein Zeitraum gewaehlt
+     ist, sagt das Label etwas und kommt zurueck. Anders als bei Top ist das Wort hier
+     der Wert, nicht der Name des Filters: es darf nicht pauschal verschwinden.
+     Gleiches Verhalten wie der Themen-Zaehler, der bei 0 ebenfalls verschwindet. */
+  const tt=document.getElementById("trigTime");
+  if(tt)tt.classList.toggle("ist-ruhe",!state.period&&state.rangeDays===0);
   // Der Zaehler deckt beide Gruppen des Dropdowns ab: Themen UND laufende Vorgaenge.
   // Sonst filterte eine Vorgangs-Auswahl unsichtbar, sobald das Menue zu ist — die Chips
   // standen frueher offen in der Leiste und waren dort immer erkennbar.
@@ -119,18 +125,22 @@ function syncFilterTriggers(){
   });
   syncPeriod();
 
+  // Menuezeilen wie in den Top-/Personalien-Dropdowns: Symbol, Beschriftung, Zahl. Am
+  // Standort-Panel bleiben Themen dagegen Chips (.chip) — dort stehen sie in einer Zeile
+  // neben dem Kliniknamen, nicht in einem Menue.
   const tc=document.getElementById("topicChips");
-  tc.innerHTML=TOPICS_ALS_CHIP.map(t=>`<button class="chip" data-topic="${esc(t)}">${esc(t)}<span class="count-soft">0</span></button>`).join("");
-  tc.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>toggleTopic(c.dataset.topic)));
+  tc.innerHTML=TOPICS_ALS_CHIP.map(t=>`<button class="facet-opt" data-topic="${esc(t)}" type="button" aria-pressed="false">
+    <span class="material-symbols-outlined" aria-hidden="true">${esc(TOPIC_ICON[t]||TOPIC_ICON_FALLBACK)}</span>
+    <span class="fo-label">${esc(t)}</span><span class="fo-n">0</span></button>`).join("");
+  tc.querySelectorAll(".facet-opt").forEach(c=>c.addEventListener("click",()=>toggleTopic(c.dataset.topic)));
 
-  // Top-Filter: eine Toggle-Pille „★ Top" kippt den Zustand (alle Breiten).
-  const topPill=document.getElementById("topPillMobile");
-  if(topPill)topPill.addEventListener("click",()=>setTopOnly(!state.topOnly));
+  document.querySelectorAll("#topPop .facet-opt").forEach(o=>
+    o.addEventListener("click",()=>setTopOnly(o.dataset.top==="1")));
   syncTopOnly();
 
-  const persPill=document.getElementById("persPill");
-  if(persPill)persPill.addEventListener("click",cyclePersonalienFilter);
-  document.querySelectorAll("#processChips .process-chip").forEach(c=>
+  document.querySelectorAll("#persPop .facet-opt").forEach(o=>
+    o.addEventListener("click",()=>setPersonalienFilter(o.dataset.pers)));
+  document.querySelectorAll("#processChips .facet-opt").forEach(c=>
     c.addEventListener("click",()=>toggleProcessFilter(c.dataset.process)));
   syncPersonalienFilter();
   syncProcessFilter();

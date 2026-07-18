@@ -152,28 +152,9 @@ function wireFeedStories(){
   });
 }
 
-function sparkline(values){
-  const max=Math.max(1,...values);
-  return `<span class="mini-spark dossier-sparkline">${values.map(v=>`<i class="${v>0?'hot':''}" style="height:${3+Math.round(v/max*17)}px"></i>`).join("")}</span>`;
-}
-function dossierMetricsHtml(d){
-  const m=d.metrics||{};
-  return `<div class="id-stat-row dossier-metrics">
-    <span class="id-stat-chip"><b>${fmtNum(m.currentVerfahren)}</b>&thinsp;aktuelle Verfahren</span>
-    <span class="id-stat-chip"><b>${fmtNum(m.latestStateChanges)}</b>&thinsp;jüngste Zustandswechsel</span>
-    <span class="id-stat-chip">${sparkline(m.trend12m||[])}12-Monats-Trend</span>
-  </div>`;
-}
-function renderDossierHead(){
-  const d=state.dossier&&CURATED_DOSSIERS[state.dossier];
-  if(!d)return "";
-  return `<div class="dossier-head" data-dossier="${esc(state.dossier)}">
-    <div class="eyebrow">Dossier</div>
-    <h3>${esc(d.label)}</h3>
-    <p>${esc(d.description)}</p>
-    ${dossierMetricsHtml(d)}
-  </div>`;
-}
+/* Der Dossier-Kopf (Titel, Beschreibung, Kennzahlen, Sparkline) stand hier bis 2026-07-18.
+   Entfernt mit den kuratierten Dossiers; Begruendung und die offenen Fragen fuer eine
+   spaetere Umsetzung: docs/prd/karten-frontend.md, „Zurueckgestellt: kuratierte Dossiers". */
 
 /* Feed ohne Auswahl: gebuendelt je Entwicklung (Karussell-Karten), Top-Entwicklungen
    zuerst (zweistufig wie Variante 3), "Top" = devTop (Kette >= TOP_MIN_MELDUNGEN). */
@@ -188,13 +169,13 @@ function renderFeed(){
     <div class="feed-sub"><span class="live-dot"></span>${fmtNum(top.length)} Top-Artikel · ${fmtNum(gesamtMeldungen)} Artikel aus ${rangeLabel()}</div>`;
 
   if(!list.length){
-    body.innerHTML=renderDossierHead()+`<div class="empty">Keine Artikelketten im gewählten Zeitraum oder Filter.</div>`;
+    body.innerHTML=`<div class="empty">Keine Artikelketten im gewählten Zeitraum oder Filter.</div>`;
     return;
   }
 
   // Vorgangs-Block ganz oben: „Was bewegt sich?“ ist die Einstiegsfrage ohne Auswahl.
   // Zugeklappt kostet er eine Zeile, damit die Artikelliste der Star bleibt.
-  let html=renderDossierHead()+vorgangBlock(vorgangList(visibleFeats()),vorgaengeOffen("feed"));
+  let html=vorgangBlock(vorgangList(visibleFeats()),vorgaengeOffen("feed"));
   if(state.topOnly||rest.length===0){
     // Nur Karten, ohne Band-Header (entweder Top-Filter aktiv oder es gibt nur Top-Karten).
     html+=truncated(list,FEED_STORY_LIMIT,feedStoryCard,"weitere Artikelketten — Zeitraum, Thema oder Suche eingrenzen.");
@@ -675,30 +656,43 @@ function toggleTopic(t){
   commitView({mapSync:"unlessFrozen"});
 }
 function syncTopicChips(){
-  document.querySelectorAll("#topicChips .chip").forEach(c=>c.classList.toggle("on",state.topics.has(c.dataset.topic)));
+  document.querySelectorAll("#topicChips .facet-opt").forEach(c=>{
+    const on=state.topics.has(c.dataset.topic);
+    c.classList.toggle("on",on);
+    c.setAttribute("aria-pressed",String(on));
+  });
 }
 /* Top-Filter: segmentiert, also Zustand SETZEN (nicht flippen). Greift wie jeder Filter
    per UND und zieht Panel/Feed (renderPanel->globalFeed) und Cluster (rebuildUnlessFrozen->devVisible) mit. */
 function setTopOnly(on){
   if(state.topOnly===on)return;
   state.topOnly=on;
-  commitView({mapSync:"unlessFrozen"});
+  // closeFilters wie bei Zeitraum und Personalien: eine Einfachauswahl ist mit dem Klick
+  // fertig. Nur die Themen bleiben offen — dort waehlt man mehrere Chips nacheinander.
+  commitView({mapSync:"unlessFrozen",closeFilters:true});
 }
 function syncTopOnly(){
-  const pill=document.getElementById("topPillMobile");
-  if(pill){pill.classList.toggle("on",state.topOnly);pill.setAttribute("aria-checked",String(state.topOnly));}
+  const trig=document.getElementById("trigTop");
+  if(!trig)return;
+  trig.classList.toggle("hat-wahl",state.topOnly);
+  trig.setAttribute("aria-label",state.topOnly?"Top: nur Top-Artikel":"Top: alle Artikel");
+  const n=countTopOptionen();
+  document.querySelectorAll("#topPop .facet-opt").forEach(o=>{
+    o.classList.toggle("on",(o.dataset.top==="1")===state.topOnly);
+    const z=o.querySelector(".fo-n"); if(z)z.textContent=fmtNum(n[o.dataset.top]??0);
+  });
 }
 
 function setPersonalienFilter(value){
   const next=["all","only","without"].includes(value)?value:"all";
   if(state.personalienFilter===next)return;
   state.personalienFilter=next;
-  state.dossier=null; state.dossierProcessFilters=null;
   commitView({mapSync:"unlessFrozen",closeFilters:true});
 }
-/* Reihenfolge des Durchschaltens. "all" ist der Default und damit der Ruhepunkt. */
-const PERSONALIEN_STATES=["all","only","without"];
-const PERSONALIEN_WORT={all:"mit",only:"nur",without:"ohne"};
+/* Beschriftung des Zustands — im Trigger (wo Platz ist) und im aria-label dieselbe.
+   „inkl." statt „mit": „mit Personalien" liess offen, ob die Artikel oder die Personalien
+   gemeint sind. Die Optionen im Dropdown tragen exakt diese Woerter. */
+const PERSONALIEN_WORT={all:"inkl.",only:"nur",without:"ohne"};
 /* Welcher Strom ist im jeweiligen Zustand AUS (= durchgestrichen)?
    pers = Personalien (badge), news = Artikel (newspaper). */
 const PERSONALIEN_OFF={
@@ -706,22 +700,22 @@ const PERSONALIEN_OFF={
   only   :{pers:false,news:true },   // nur Personalien -> Artikel aus
   without:{pers:true ,news:false}    // ohne Personalien -> Personalien aus
 };
-function cyclePersonalienFilter(){
-  const i=PERSONALIEN_STATES.indexOf(state.personalienFilter);
-  setPersonalienFilter(PERSONALIEN_STATES[(i+1)%PERSONALIEN_STATES.length]);
-}
 function syncPersonalienFilter(){
-  const pill=document.getElementById("persPill");
-  if(!pill)return;
+  const trig=document.getElementById("trigPers");
+  if(!trig)return;
   const s=state.personalienFilter;
-  pill.classList.remove("st-all","st-only","st-without");
-  pill.classList.add("st-"+s);
-  const wort=document.getElementById("persState");
-  if(wort)wort.textContent=PERSONALIEN_WORT[s];
   const off=PERSONALIEN_OFF[s];
-  pill.querySelector('[data-gi="pers"]').classList.toggle("off",off.pers);
-  pill.querySelector('[data-gi="news"]').classList.toggle("off",off.news);
-  pill.setAttribute("aria-label",`Personalien: ${PERSONALIEN_WORT[s]} — weiterschalten`);
+  trig.querySelector('[data-gi="pers"]').classList.toggle("off",off.pers);
+  trig.querySelector('[data-gi="news"]').classList.toggle("off",off.news);
+  const beschriftung=`${PERSONALIEN_WORT[s]} Personalien`;
+  const wort=document.getElementById("persWort");
+  if(wort)wort.textContent=beschriftung;
+  trig.setAttribute("aria-label",`Personalien-Filter: ${beschriftung}`);
+  const n=countPersonalienOptionen();
+  document.querySelectorAll("#persPop .facet-opt").forEach(o=>{
+    o.classList.toggle("on",o.dataset.pers===s);
+    const z=o.querySelector(".fo-n"); if(z)z.textContent=fmtNum(n[o.dataset.pers]??0);
+  });
 }
 /* Vorgangstypen sind seit 2026-07-18 gezaehlte Chips und damit frei kombinierbar
    (gewaehlt als Variante A, siehe varianten/personalien-vorgaenge.html). Leere Auswahl
@@ -733,20 +727,18 @@ function toggleProcessFilter(typ){
   const i=aktiv.indexOf(typ);
   if(i>=0)aktiv.splice(i,1); else aktiv.push(typ);
   state.processFilter=aktiv;
-  // Manuelle Wahl loest den Dossier-Vorfilter ab; Auswahl und eingefrorener Bereich
-  // bleiben aber stehen — genau wie bei toggleTopic. Beide Chip-Gruppen liegen seit
-  // 2026-07-18 nebeneinander im selben Dropdown und muessen sich gleich anfuehlen.
-  state.dossier=null; state.dossierProcessFilters=null;
+  // Auswahl und eingefrorener Bereich bleiben stehen — genau wie bei toggleTopic. Beide
+  // Chip-Gruppen liegen im selben Dropdown und muessen sich gleich anfuehlen.
   commitView({mapSync:"unlessFrozen"});
 }
 function syncProcessFilter(){
   const zahlen=countVorgangTypen();
-  document.querySelectorAll("#processChips .process-chip").forEach(c=>{
+  document.querySelectorAll("#processChips .facet-opt").forEach(c=>{
     const typ=c.dataset.process;
     const on=state.processFilter.includes(typ);
     c.classList.toggle("on",on);
     c.setAttribute("aria-pressed",String(on));
-    const n=c.querySelector(".pc-n");
+    const n=c.querySelector(".fo-n");
     if(n)n.textContent=fmtNum(zahlen[typ]??0);
     // Typ ohne Treffer bleibt sichtbar, aber gedaempft: die 0 ist selbst eine Aussage.
     c.classList.toggle("leer",(zahlen[typ]??0)===0&&!on);

@@ -16,9 +16,14 @@ async function start(){
   // Normalisierten Such-Blob je Feature vorberechnen: Name, Träger, Ort, Region
   // plus je Entwicklung deren Themen und je Meldung deren Schlagzeile.
   FEATS.forEach(f=>{const p=f.properties;const parts=[p.name,p.traeger,p.city,p.region];(p.developments||[]).forEach(d=>{(d.topics||[]).forEach(t=>parts.push(t));(d.items||[]).forEach(m=>parts.push(m.titel));});p._searchBlob=searchNorm(parts.join(" "));});
-  applyDossierState(dossierFromUrl());
   addClinicLayers();
   renderPanel();
+  // syncControls() gehoert dazu, nicht nur renderPanel(): die Zaehler an Chips und
+  // Dropdown-Optionen werden beim Skriptstart mit leerem FEATS gefuellt und stuenden
+  // sonst bis zur ersten Interaktion auf 0 — direkt nach dem Laden also genau dann,
+  // wenn man das erste Mal ein Dropdown aufmacht. (commitView() waere hier zu viel:
+  // es baut Karte und Panel gleich noch einmal.)
+  syncControls();
   goHome(0);
 }
 if(map.isStyleLoaded())start();
