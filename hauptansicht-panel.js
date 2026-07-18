@@ -674,14 +674,16 @@ function setTopOnly(on){
 /* Der Trigger traegt seinen WERT, nicht seinen Namen — genau wie der Zeitraum: „Alle" im
    Ruhezustand, „Top" sobald nur Top-Artikel gewaehlt sind. Deshalb auch dieselbe
    .ist-ruhe-Regel statt einer eigenen: das Ruhewort faellt mobil weg, der gewaehlte Wert
-   bleibt stehen. Ein zusaetzlich eingefaerbtes Symbol gibt es bewusst nicht mehr — es
-   waere eine zweite Aussage neben dem Wort, und der Zeitraum macht es auch nicht. */
+   bleibt stehen. Der gefuellte Akzentstern (.hat-wahl) laeuft absichtlich zusaetzlich
+   mit — er traegt auf einen Blick, das Wort genau, und mobil im Ruhezustand steht er
+   allein. */
 function syncTopOnly(){
   const trig=document.getElementById("trigTop");
   if(!trig)return;
   const label=document.getElementById("trigTopLabel");
   if(label)label.textContent=state.topOnly?"Top":"Alle";
   trig.classList.toggle("ist-ruhe",!state.topOnly);
+  trig.classList.toggle("hat-wahl",state.topOnly);
   trig.setAttribute("aria-label",state.topOnly?"Top: nur Top-Artikel":"Top: alle Artikel");
   const n=countTopOptionen();
   document.querySelectorAll("#topPop .facet-opt").forEach(o=>{

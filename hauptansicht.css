@@ -342,10 +342,13 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
    weit genug rechts aufklappt, um das Panel zu erreichen.) */
 .filterbar:not([data-open="none"]){overflow:visible;z-index:45}
 
-/* Jeder Trigger zeigt seinen Zustand an GENAU EINER Stelle: Zeitraum und Top im Wert
-   (.trig-wert), Themen im Zaehler, Personalien in den Glyphen. Ein zusaetzlich
-   eingefaerbtes Symbol daneben waere eine zweite Aussage ueber dieselbe Sache. */
+/* Jeder Trigger zeigt seinen Zustand im Wert: Zeitraum und Top in .trig-wert, Themen im
+   Zaehler, Personalien in den Glyphen. Top bekommt zusaetzlich den gefuellten Akzentstern
+   — bewusst doppelt: der Stern traegt auf einen Blick, das Wort genau, und mobil faellt
+   das Ruhewort weg, sodass der Stern dort im Ruhezustand allein steht. */
 .facet-trigger .facet-dot[hidden]{display:none}
+.facet-trigger.hat-wahl>.material-symbols-outlined:first-child{color:var(--accent);
+  font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
 
 /* ============ Info-Popup (Erklärung Entwicklung) ============ */
 .modal-backdrop{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
