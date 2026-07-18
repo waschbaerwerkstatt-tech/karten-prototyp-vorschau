@@ -671,10 +671,17 @@ function setTopOnly(on){
   // fertig. Nur die Themen bleiben offen — dort waehlt man mehrere Chips nacheinander.
   commitView({mapSync:"unlessFrozen",closeFilters:true});
 }
+/* Der Trigger traegt seinen WERT, nicht seinen Namen — genau wie der Zeitraum: „Alle" im
+   Ruhezustand, „Top" sobald nur Top-Artikel gewaehlt sind. Deshalb auch dieselbe
+   .ist-ruhe-Regel statt einer eigenen: das Ruhewort faellt mobil weg, der gewaehlte Wert
+   bleibt stehen. Ein zusaetzlich eingefaerbtes Symbol gibt es bewusst nicht mehr — es
+   waere eine zweite Aussage neben dem Wort, und der Zeitraum macht es auch nicht. */
 function syncTopOnly(){
   const trig=document.getElementById("trigTop");
   if(!trig)return;
-  trig.classList.toggle("hat-wahl",state.topOnly);
+  const label=document.getElementById("trigTopLabel");
+  if(label)label.textContent=state.topOnly?"Top":"Alle";
+  trig.classList.toggle("ist-ruhe",!state.topOnly);
   trig.setAttribute("aria-label",state.topOnly?"Top: nur Top-Artikel":"Top: alle Artikel");
   const n=countTopOptionen();
   document.querySelectorAll("#topPop .facet-opt").forEach(o=>{

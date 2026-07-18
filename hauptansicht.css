@@ -342,13 +342,10 @@ button.brand{background:none;border:none;color:inherit;cursor:pointer;padding:0}
    weit genug rechts aufklappt, um das Panel zu erreichen.) */
 .filterbar:not([data-open="none"]){overflow:visible;z-index:45}
 
-/* Ein aktiver Filter, dessen Trigger seinen Zustand nicht ohnehin im Text zeigt (Top,
-   sobald „Nur Top" gewaehlt ist), meldet sich mit dem Akzentpunkt. Zeitraum traegt den
-   Zustand im Label, Themen im Zaehler, Personalien in den Glyphen — der Punkt ist die
-   vierte Spielart derselben Sache und nie eine zweite Aussage daneben. */
+/* Jeder Trigger zeigt seinen Zustand an GENAU EINER Stelle: Zeitraum und Top im Wert
+   (.trig-wert), Themen im Zaehler, Personalien in den Glyphen. Ein zusaetzlich
+   eingefaerbtes Symbol daneben waere eine zweite Aussage ueber dieselbe Sache. */
 .facet-trigger .facet-dot[hidden]{display:none}
-.facet-trigger.hat-wahl>.material-symbols-outlined:first-child{color:var(--accent);
-  font-variation-settings:'FILL' 1,'wght' 500,'opsz' 22}
 
 /* ============ Info-Popup (Erklärung Entwicklung) ============ */
 .modal-backdrop{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
@@ -758,16 +755,13 @@ a.st-src:hover .st-ext{color:var(--accent)}
      unter der Leiste. */
   .filterbar{left:12px;right:12px;top:60px}
   .facet-pop{position:fixed;left:12px;right:12px;top:108px;min-width:0;max-height:62vh;overflow:auto}
-  /* Letzte Reserve, damit die vier Trigger auf die Zeile passen: das Wort „Top" fällt, der
-     Stern trägt allein. Bewusst nur hier und nur bei Top — der Stern ist das eindeutigste
-     der vier Symbole, und die Beschriftung steht ohnehin im Dropdown. Zusammen mit dem
-     engeren Innenabstand bringt das die Leiste auf ~376px: ab 390px-Geräten passt alles
-     ohne Wischen, auf dem 375er bleibt ein Rest — dort schaut „Themen" angeschnitten
-     herein und lädt genau dazu ein. */
+  /* „inkl./nur/ohne Personalien" faellt mobil immer: die zwei Glyphen tragen den Zustand
+     dort allein, und das Wort kostete ~95px. */
   .facet-trigger .trig-wort{display:none}
-  /* Zeitraum: nur das Ruhewort „Alle" faellt, gewaehlte Zeitraeume bleiben lesbar (siehe
-     syncFilterTriggers). Im Ruhezustand passen damit alle vier Trigger auf die Zeile. */
-  .facet-trigger.ist-ruhe #trigTimeLabel{display:none}
+  /* Zeitraum und Top: nur das RUHEWORT „Alle" faellt, ein gewaehlter Wert („7 Tage",
+     „Top") bleibt lesbar. Im Ruhezustand passen damit alle vier Trigger auf die Zeile;
+     sobald ein Filter etwas zu sagen hat, darf die Leiste dafuer wischbar werden. */
+  .facet-trigger.ist-ruhe .trig-wert{display:none}
   .facet-trigger{padding:0 10px;gap:5px}
   .filterbar{gap:6px}
 
