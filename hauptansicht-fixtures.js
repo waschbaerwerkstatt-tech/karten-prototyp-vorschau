@@ -45,6 +45,23 @@ const CURATED_VORGAENGE=[
     {zustand:"Eröffnung (Eigenverwaltung)",datum:"2026-01-20",belegArtikelId:"mock-artikel-vorgang-772995-20260120"},
     {zustand:"Sanierung",datum:"2026-02-14",belegArtikelId:"mock-artikel-vorgang-772995-20260214"},
    ]},
+  /* Neubau hat bewusst nur drei Phasen (Ankündigung -> Bau -> Inbetriebnahme): eine Phase
+     „geplant/genehmigt" ist presseseitig nicht von der Ankündigung zu trennen.
+     Autoritativ: docs/prd/analysen-datenmodell.md, Abschnitt 7. */
+  {id:"vorgang-771083-neubau",standortId:"771083",typ:"neubau",label:"Neubau",zustand:"Bau",
+   titel:"Ersatzneubau München Klinik Harlaching",stand:"2026-05-04",topics:["Investition"],dossier:"khvvg",kettenIds:["mock-kette-vorgang-771083-neubau"],
+   zustandsHistorie:[
+    {zustand:"Ankündigung",datum:"2026-01-16",belegArtikelId:"mock-artikel-vorgang-771083-20260116"},
+    {zustand:"Bau",datum:"2026-05-04",belegArtikelId:"mock-artikel-vorgang-771083-20260504"},
+   ]},
+  /* Kooperation ist rein annotativ: sie ändert weder Trägerschaft noch Existenz-Status.
+     Deshalb Thema „Versorgung" und nicht „Trägerwechsel" — wird aus der Kooperation später
+     doch eine Übernahme, entsteht ein verlinkter Folge-Vorgang Trägerwechsel. */
+  {id:"vorgang-772828-kooperation",standortId:"772828",typ:"kooperation",label:"Kooperation",zustand:"Ankündigung",
+   titel:"Verbund Klinikum Bremen Nord und Bremerhaven",stand:"2026-06-11",topics:["Versorgung"],dossier:"khvvg",kettenIds:["mock-kette-vorgang-772828-kooperation"],
+   zustandsHistorie:[
+    {zustand:"Ankündigung",datum:"2026-06-11",belegArtikelId:"mock-artikel-vorgang-772828-20260611"},
+   ]},
 ];
 
 const CURATED_VORGANG_ARTIKEL={
@@ -56,6 +73,9 @@ const CURATED_VORGANG_ARTIKEL={
   "mock-artikel-vorgang-773724-20260406":{quelle:"SWP",url:"https://example.org/steinlach-offene-fragen",titel:"Klinik-Aus in Mössingen: Betreiber beantwortet Fragen"},
   "mock-artikel-vorgang-772995-20260120":{quelle:"Weser Kurier",url:"https://example.org/bremen-insolvenzplan",titel:"Gericht bestätigt Insolvenzplan"},
   "mock-artikel-vorgang-772995-20260214":{quelle:"buten un binnen",url:"https://example.org/bremen-verfahren-aufgehoben",titel:"Krankenhaus verlässt Insolvenzverfahren"},
+  "mock-artikel-vorgang-771083-20260116":{quelle:"SZ",url:"https://example.org/harlaching-ersatzneubau",titel:"München Klinik kündigt Ersatzneubau in Harlaching an"},
+  "mock-artikel-vorgang-771083-20260504":{quelle:"BR",url:"https://example.org/harlaching-spatenstich",titel:"Spatenstich für den Neubau in Harlaching"},
+  "mock-artikel-vorgang-772828-20260611":{quelle:"Weser Kurier",url:"https://example.org/bremen-nord-verbund",titel:"Bremen Nord und Bremerhaven kündigen Klinikverbund an"},
 };
 
 const CURATED_DOSSIERS={
@@ -64,9 +84,9 @@ const CURATED_DOSSIERS={
     processFilters:["insolvenzverfahren","traegerwechsel"],personalienFilter:"all",
     metrics:{currentVerfahren:2,latestStateChanges:3,trend12m:[1,1,2,2,2,3,3,4,3,3,2,2]}},
   khvvg:{label:"Krankenhausreform (KHVVG)",href:"hauptansicht.html?dossier=khvvg",
-    description:"Reformnahe Standortschließungen, Leistungsverschiebungen und belegte Folgen.",
-    processFilters:["standortschliessung"],personalienFilter:"all",
-    metrics:{currentVerfahren:1,latestStateChanges:2,trend12m:[0,0,1,1,1,1,1,2,2,2,1,1]}},
+    description:"Reformnahe Standortschließungen, Neubauten, Verbünde und belegte Folgen.",
+    processFilters:["standortschliessung","neubau","kooperation"],personalienFilter:"all",
+    metrics:{currentVerfahren:3,latestStateChanges:5,trend12m:[0,0,1,1,1,2,2,3,3,3,2,3]}},
   personal:{label:"Fachkräftemangel & Personal",href:"hauptansicht.html?dossier=personal",
     description:"Personalien und Personalthemen als belegte Ereignisse, nicht als Vita-Seiten.",
     processFilters:[],personalienFilter:"only",

@@ -10,6 +10,14 @@
 const TODAY=new Date(2026,5,13);
 // muss mit CURATED_TOPICS in tools/build_kliniken_geojson.py übereinstimmen (Wert + Reihenfolge).
 const TOPICS=["Insolvenz","Investition","Trägerwechsel","Personal","Versorgung","Reform"];
+/* Themen, die bereits ein eigenes, reicheres Bedienelement haben — sie erscheinen deshalb
+   NICHT als Themen-Chip, weder im Dropdown noch am Standort (2026-07-18):
+     Insolvenz, Trägerwechsel -> Gruppe „Laufende Vorgänge" (Verfahren mit Verlauf)
+     Personal                 -> Personalien-Pille in der Filterleiste
+   TOPICS selbst bleibt vollstaendig: die Themen stehen weiter an den Daten und zaehlen mit,
+   nur die doppelte Bedienung faellt weg. */
+const TOPICS_ANDERSWO=new Set(["Insolvenz","Trägerwechsel","Personal"]);
+const TOPICS_ALS_CHIP=TOPICS.filter(t=>!TOPICS_ANDERSWO.has(t));
 const SRC="kliniken";
 const FEED_STORY_LIMIT=40;  // globaler Feed gebuendelt: max. so viele Story-Karten rendern (DOM-leicht)
 const TOP_MIN_MELDUNGEN=2;  // "Top"-Entwicklung = Kette aus >= so vielen Meldungen; Schwelle an genau einer Stelle (ggf. auf 3 drehen)
@@ -87,11 +95,13 @@ function applyForeignCountryLabelMask(){
 /* ============ State ============ */
 const state={selectedId:null,rangeDays:0,topics:new Set(),query:"",topOnly:false,
   personalienFilter:"all", // all | only | without — Default zeigt Personalien plus Artikel
-  processFilter:null,      // null | insolvenzverfahren | traegerwechsel | standortschliessung
+  processFilter:[],        // gewaehlte Vorgangstypen; leer = alle. Seit 2026-07-18 mehrfach
+                           // waehlbar (gezaehlte Chips statt Einfachauswahl im Dropdown).
   dossier:null,
   dossierProcessFilters:null,
   frozen:null,       // {clusterId, center:[lng,lat], ids:Set<standort_id>, zoom} — eingefrorener Cluster-Bereich (zoom = Karten-Zoom beim Einfrieren)
   bereichTab:"feed", // Umschalter im Bereichs-Panel: feed | kliniken (Endnutzer-Wahl)
+  vorgaengeOffen:null, // Vorgangs-Block: null = Vorgabe je Panel-Zustand (nur Standort offen), sonst die Wahl des Nutzers
   period:null,       // kalendarische Suche: {level:"kw"|"monat"|"quartal", value} oder null. Gegenseitig exklusiv zum Tages-Preset (rangeDays).
 };
 
@@ -179,6 +189,8 @@ const ACTIVE_PROCESS_STATES={
   insolvenzverfahren:new Set(["Antrag","Eröffnung (Eigenverwaltung)","Eröffnung (Schutzschirm)"]),
   traegerwechsel:new Set(["Ankündigung","Verfahren/Verhandlung"]),
   standortschliessung:new Set(["angekündigt","beschlossen","vollzogen"]),
+  neubau:new Set(["Ankündigung","Bau"]),          // Inbetriebnahme = abgeschlossen
+  kooperation:new Set(["Ankündigung"]),           // Vollzug = abgeschlossen
 };
 function activeProcessState(v){
   const states=ACTIVE_PROCESS_STATES[v.typ];
@@ -186,13 +198,13 @@ function activeProcessState(v){
 }
 function activeProcessMatch(d,filters=null){
   if(d.ap4Kind!=="vorgang"||!d.vorgang)return false;
-  const wanted=filters||state.dossierProcessFilters||(state.processFilter?[state.processFilter]:null);
+  const wanted=filters||state.dossierProcessFilters||(state.processFilter.length?state.processFilter:null);
   if(!wanted||!wanted.length)return true;
   if(!wanted.includes(d.vorgang.typ))return false;
   return activeProcessState(d.vorgang);
 }
 function processAllowed(d){
-  const wanted=state.dossierProcessFilters||(state.processFilter?[state.processFilter]:null);
+  const wanted=state.dossierProcessFilters||(state.processFilter.length?state.processFilter:null);
   if(!wanted||!wanted.length)return true;
   return activeProcessMatch(d,wanted);
 }
@@ -234,6 +246,25 @@ function countOnTheFly(){const dev={};for(const t of TOPICS)dev[t]=0;for(const f
 /* Frischt sowohl Filterleisten- als auch Panel-Themen-Chips mit der aktuellen Zahl. */
 function updateTopicCounts(){const c=countOnTheFly();document.querySelectorAll(".chip[data-topic]").forEach(ch=>{const s=ch.querySelector(".count-soft");if(s)s.textContent=c[ch.dataset.topic]??0;});}
 
+/* Wie devVisible, aber OHNE die Vorgangs-Bedingung — analog zu devVisibleNoTopic.
+   Noetig fuer die Zaehler auf den Vorgangs-Chips: zaehlte man mit aktivem Vorgangsfilter,
+   fielen die nicht gewaehlten Typen sofort auf 0 und man saehe nie, was man verpasst. */
+function devVisibleNoProcess(d){return inRange(d.end)&&topicMatch(d.topics)&&personalienAllowed(d)&&(!state.topOnly||devTop(d));}
+/* Zaehlt sichtbare Vorgaenge je Typ. Nur aktive Verfahrensstaende zaehlen mit — dieselbe
+   Regel, nach der auch gefiltert wird (ACTIVE_PROCESS_STATES). */
+function countVorgangTypen(){
+  const n={};
+  for(const t of Object.keys(ACTIVE_PROCESS_STATES))n[t]=0;
+  for(const f of visibleFeats()){
+    for(const d of (f.properties.developments||[])){
+      if(d.ap4Kind!=="vorgang"||!d.vorgang)continue;
+      if(!devVisibleNoProcess(d)||!activeProcessState(d.vorgang))continue;
+      if(n[d.vorgang.typ]!==undefined)n[d.vorgang.typ]++;
+    }
+  }
+  return n;
+}
+
 /* ============ Karte ============ */
 const map=new maplibregl.Map({
   container:"map",style:getMapStyle("dunkel"),center:HOME_CENTER,zoom:HOME_ZOOM,minZoom:4.3,maxZoom:16,
@@ -247,7 +278,7 @@ map.addControl(new maplibregl.NavigationControl({showCompass:false}),"bottom-rig
 function currentCollection(){
   const feats=visibleFeats();
   const fz=state.frozen;
-  const processActive=!!(state.processFilter||(state.dossierProcessFilters&&state.dossierProcessFilters.length));
+  const processActive=!!(state.processFilter.length||(state.dossierProcessFilters&&state.dossierProcessFilters.length));
   feats.forEach(f=>{
     f.properties.entFiltered=countDevs(f);   // nur die ausgelieferten Features zählen
     f.properties._frozenMember=(fz&&fz.ids.has(f.properties.standort_id))?1:0;   // P7: speist clusterProperties.frozenCount
@@ -457,7 +488,9 @@ function applyDossierState(key){
   const d=key&&CURATED_DOSSIERS[key]; if(!d)return;
   state.dossier=key;
   state.dossierProcessFilters=d.processFilters&&d.processFilters.length?d.processFilters.slice():null;
-  state.processFilter=d.processFilters&&d.processFilters.length===1?d.processFilters[0]:null;
+  // Dossier-Vorfilter uebernimmt seine Typen vollstaendig — nicht mehr nur bei genau einem,
+  // seit die Chips Mehrfachauswahl koennen.
+  state.processFilter=d.processFilters&&d.processFilters.length?d.processFilters.slice():[];
   state.personalienFilter=d.personalienFilter||"all";
   state.selectedId=null; state.frozen=null; state.bereichTab="feed";
 }

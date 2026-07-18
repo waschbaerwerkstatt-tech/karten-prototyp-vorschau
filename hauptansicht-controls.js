@@ -2,7 +2,10 @@
 let placeThumbRef=null;
 let syncPeriodRef=null;   // füllt/markiert den Kalenderfilter (Ebene + Periode) aus state.period
 // Trigger je data-open-Zustand: Zeit/Themen (nur ≤1540px) + Facetten (alle Breiten).
-const FILTER_TRIGGERS={time:"trigTime",topics:"trigTopics",personalien:"trigPersonalien",process:"trigVorgang"};
+/* Personalien und Vorgaenge fehlen hier bewusst: seit 2026-07-18 sind das eine
+   Durchschalt-Pille (#persPill) bzw. gezaehlte Chips (#processChips) — beide ohne
+   Dropdown, also ohne Trigger zum Auf-/Zuklappen. */
+const FILTER_TRIGGERS={time:"trigTime",topics:"trigTopics"};
 function closeFilterPop(){
   const fb=document.getElementById("filterbar"); if(!fb)return;
   fb.setAttribute("data-open","none");
@@ -13,8 +16,11 @@ function syncFilterTriggers(){
   const tl=document.getElementById("trigTimeLabel");
   // Aktive Kalender-Periode hat Vorrang im Trigger-Label (Exklusivität zum Tages-Preset).
   if(tl)tl.textContent=state.period?periodLabel(state.period):{7:"7 Tage",30:"30 Tage",0:"Alle"}[state.rangeDays];
+  // Der Zaehler deckt beide Gruppen des Dropdowns ab: Themen UND laufende Vorgaenge.
+  // Sonst filterte eine Vorgangs-Auswahl unsichtbar, sobald das Menue zu ist — die Chips
+  // standen frueher offen in der Leiste und waren dort immer erkennbar.
   const cb=document.getElementById("trigTopicsCount");
-  if(cb){const n=state.topics.size; cb.textContent=n; cb.classList.toggle("is-empty",n===0);}
+  if(cb){const n=state.topics.size+state.processFilter.length; cb.textContent=n; cb.classList.toggle("is-empty",n===0);}
 }
 (function initFilters(){
   // Zeitraum-Schieberegler: Thumb auf den aktiven Schritt legen, bei Klick umschalten
@@ -114,20 +120,18 @@ function syncFilterTriggers(){
   syncPeriod();
 
   const tc=document.getElementById("topicChips");
-  tc.innerHTML=TOPICS.map(t=>`<button class="chip" data-topic="${esc(t)}">${esc(t)}<span class="count-soft">0</span></button>`).join("");
+  tc.innerHTML=TOPICS_ALS_CHIP.map(t=>`<button class="chip" data-topic="${esc(t)}">${esc(t)}<span class="count-soft">0</span></button>`).join("");
   tc.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>toggleTopic(c.dataset.topic)));
 
-  // Top-Filter (Segmented "Alle | Top"): jede Zelle setzt den Zustand explizit
-  document.querySelectorAll("#topSeg .topseg-opt").forEach(o=>o.addEventListener("click",()=>setTopOnly(o.dataset.top==="top")));
-  // Top-Schalter mobil (Icon-Pille): kippt den Zustand
+  // Top-Filter: eine Toggle-Pille „★ Top" kippt den Zustand (alle Breiten).
   const topPill=document.getElementById("topPillMobile");
   if(topPill)topPill.addEventListener("click",()=>setTopOnly(!state.topOnly));
   syncTopOnly();
 
-  document.querySelectorAll("#personalienSeg .personalien-opt").forEach(o=>
-    o.addEventListener("click",()=>setPersonalienFilter(o.dataset.personalien||"all")));
-  document.querySelectorAll("#processSeg .process-opt").forEach(o=>
-    o.addEventListener("click",()=>setProcessFilter(o.dataset.process||null)));
+  const persPill=document.getElementById("persPill");
+  if(persPill)persPill.addEventListener("click",cyclePersonalienFilter);
+  document.querySelectorAll("#processChips .process-chip").forEach(c=>
+    c.addEventListener("click",()=>toggleProcessFilter(c.dataset.process)));
   syncPersonalienFilter();
   syncProcessFilter();
 

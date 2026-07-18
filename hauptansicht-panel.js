@@ -192,7 +192,9 @@ function renderFeed(){
     return;
   }
 
-  let html=renderDossierHead();
+  // Vorgangs-Block ganz oben: „Was bewegt sich?“ ist die Einstiegsfrage ohne Auswahl.
+  // Zugeklappt kostet er eine Zeile, damit die Artikelliste der Star bleibt.
+  let html=renderDossierHead()+vorgangBlock(vorgangList(visibleFeats()),vorgaengeOffen("feed"));
   if(state.topOnly||rest.length===0){
     // Nur Karten, ohne Band-Header (entweder Top-Filter aktiv oder es gibt nur Top-Karten).
     html+=truncated(list,FEED_STORY_LIMIT,feedStoryCard,"weitere Artikelketten — Zeitraum, Thema oder Suche eingrenzen.");
@@ -226,7 +228,9 @@ function sparkData(f){
 /* Entwicklungen des Standorts, themen-/zeitgefiltert (jüngste zuerst, wie im Export). */
 function devList(f){return (f.properties.developments||[]).filter(devVisible);}
 /* Kuratierte Themen, die am Standort vorkommen (für die Panel-Chips). */
-function locTopics(f){const s=new Set();(f.properties.developments||[]).forEach(d=>(d.topics||[]).forEach(t=>s.add(t)));return TOPICS.filter(t=>s.has(t));}
+/* Bewusst TOPICS_ALS_CHIP, nicht TOPICS: sonst boete der Standort ein Thema als Chip an,
+   das sich in der Filterleiste gar nicht wieder abwaehlen laesst (dort fehlt der Chip). */
+function locTopics(f){const s=new Set();(f.properties.developments||[]).forEach(d=>(d.topics||[]).forEach(t=>s.add(t)));return TOPICS_ALS_CHIP.filter(t=>s.has(t));}
 
 function notfallLabel(n){return {0:"Keine Notfallstufe",1:"Basisnotfall (St. 1)",2:"Erweitert (St. 2)",3:"Umfassend (St. 3)",9:"Spezialversorgung"}[n]||"Notfallstufe k. A.";}
 /* Fälle als Kennzahlen-Chip mit Schwärzung: exakter Wert > Größenklasse (geschwärzt) > k. A. */
@@ -368,23 +372,81 @@ function standortStoryCard(f,d){
       ${carouselHTML(d.items)}
     </div>`;
 }
-function standortVorgangSection(f){
-  const vorgaenge=(f.properties.developments||[]).filter(d=>d.ap4Kind==="vorgang"&&d.vorgang).map(d=>d.vorgang);
-  if(!vorgaenge.length)return "";
-  return `<div class="section vorgang-section">
-    <div class="timeline-head"><div class="eyebrow">Vorgänge</div><div class="count">Stand: ${esc(vorgaenge[0].stand)}</div></div>
-    ${vorgaenge.map(v=>`<div class="vorgang-card" data-process-zustand="${esc(v.zustand)}">
-      <div class="story-head"><div class="story-tags"><span class="topic-tag">${esc(v.label)}</span><span class="topic-tag">${esc(v.zustand)}</span></div></div>
-      <h4 class="st-title">${esc(v.titel)}</h4>
-      <div class="vorgang-history">${v.zustandsHistorie.map(t=>{
-        const artikel=CURATED_VORGANG_ARTIKEL[t.belegArtikelId]||{};
-        const link=safeUrl(artikel.url);
-        const label=`${fmtDate(t.datum)} · ${t.zustand}`;
-        return `<div class="vorgang-step"><b>${esc(label)}</b>${link?`<a class="st-src" href="${esc(link)}" target="_blank" rel="noopener">Quelle: ${esc(artikel.quelle)}<span class="material-symbols-outlined st-ext" aria-hidden="true">north_east</span></a>`:""}</div>`;
-      }).join("")}</div>
-      <div class="modal-note">Stand: ${fmtDate(v.stand)}</div>
-    </div>`).join("")}
+/* ============ Vorgangs-Block „Was bewegt sich?“ ============
+   EIN Bauteil fuer alle drei Panel-Zustaende (Feed, Bereich, Standort). Unterschiedlich ist
+   nur, WO er sitzt und WIE VIELE Zeilen er zeigt — nie die Bauform. Standardmaessig zu; nur
+   im Standort-Zustand startet er offen, weil man dort ohnehin ein einzelnes Haus im Blick hat
+   und die Liste meist genau einen Vorgang lang ist.
+   Gewaehlt 2026-07-18, siehe varianten/vorgaenge-sidepanel.html. */
+
+/* Ein Vorgang je Zeile: Typ-Icon, Titel, Mini-Zeitstrahl, Stand. Jeder Schritt des
+   Zeitstrahls fuehrt zu seinem Beleg-Artikel — dadurch bleiben die Quellen erreichbar,
+   ohne dauerhaft Hoehe zu kosten. */
+function vorgangRow(v,standortId){
+  const schritte=v.zustandsHistorie||[];
+  const letzter=schritte.length-1;
+  const tl=schritte.map((t,i)=>{
+    const artikel=CURATED_VORGANG_ARTIKEL[t.belegArtikelId]||{};
+    const link=safeUrl(artikel.url);
+    const cls="node"+(i===letzter?" cur":"");
+    const inner=`<span class="dot" aria-hidden="true"></span><span class="lab">${esc(t.zustand)}</span>`;
+    const titel=`${fmtDate(t.datum)} · ${t.zustand}${artikel.quelle?` — Beleg: ${artikel.quelle}`:""}`;
+    return link
+      ? `<a class="${cls}" href="${esc(link)}" target="_blank" rel="noopener" title="${esc(titel)}">${inner}</a>`
+      : `<span class="${cls}" title="${esc(titel)}">${inner}</span>`;
+  }).join('<span class="seg" aria-hidden="true"></span>');
+  // Zeile waehlt den Standort — im Standort-Zustand ist das bereits der aktuelle, dann ohne Wirkung.
+  return `<button class="vrow" type="button" data-action="select-location" data-loc="${esc(standortId)}">
+    <span class="vico ${esc(v.typ)}"><span class="material-symbols-outlined" aria-hidden="true">${esc(VORGANG_ICON[v.typ]||"account_tree")}</span></span>
+    <span class="vmain">
+      <span class="vtitle">${esc(v.titel)}</span>
+      <span class="mtl">${tl}</span>
+    </span>
+    <span class="vdate">${esc(fmtDate(v.stand))}</span>
+  </button>`;
+}
+/* gavel gehoert der Rechtsprechung (Viewbar/seiten/rechtsprechung.html) — Vorgaenge nutzen es nicht.
+   euro statt money_off: money_off ist ein durchgestrichener Dollar. Ein Durchstrich auf dem
+   Euro-Glyph geht nicht — der Strich loescht das runde Zeichen in 16px aus; beim Dollar bleibt
+   dessen senkrechter Balken stehen. Zahlungsunfaehigkeit tragen hier Farbe (--warn) und Titel. */
+const VORGANG_ICON={insolvenzverfahren:"euro",traegerwechsel:"swap_horiz",standortschliessung:"block",
+  neubau:"construction",kooperation:"handshake"};
+
+/* Sammelt sichtbare Vorgaenge ueber mehrere Standorte, jeweils mit ihrem Standort verknuepft.
+   devVisible() haelt Zeitraum, Thema, Suche und den Vorgangsfilter der Filterleiste ein. */
+function vorgangList(feats){
+  const out=[];
+  feats.forEach(f=>(f.properties.developments||[]).forEach(d=>{
+    if(d.ap4Kind==="vorgang"&&d.vorgang&&devVisible(d))
+      out.push({v:d.vorgang,standortId:f.properties.standort_id});
+  }));
+  return out.sort((a,b)=>String(b.v.stand).localeCompare(String(a.v.stand)));
+}
+
+/* Offen-Zustand: null = noch nicht angefasst, dann entscheidet der Panel-Zustand.
+   Sobald der Nutzer einmal klickt, gilt seine Wahl ueberall und bleibt erhalten — sonst
+   wuerde der Block bei jedem Re-Render wieder zuklappen, waehrend man ihn liest. */
+function vorgaengeOffen(mode){
+  return state.vorgaengeOffen===null ? mode==="standort" : state.vorgaengeOffen;
+}
+function vorgangBlock(eintraege,offen){
+  if(!eintraege.length)return "";   // kein Vorgang -> kein Block, keine leere Pille
+  const n=eintraege.length;
+  return `<div class="vblock" data-open="${offen?"true":"false"}">
+    <button class="vb-head" type="button" data-action="toggle-vorgaenge" aria-expanded="${offen?"true":"false"}">
+      <span class="material-symbols-outlined vb-ico" aria-hidden="true">timeline</span>
+      <span class="vb-q">Was bewegt sich?</span>
+      <span class="vb-n">${fmtNum(n)} ${n===1?"Vorgang":"Vorgänge"}</span>
+      <span class="material-symbols-outlined vb-car" aria-hidden="true">expand_more</span>
+    </button>
+    <div class="vb-list">${eintraege.map(e=>vorgangRow(e.v,e.standortId)).join("")}</div>
   </div>`;
+}
+function standortVorgangSection(f){
+  const eintraege=(f.properties.developments||[])
+    .filter(d=>d.ap4Kind==="vorgang"&&d.vorgang&&devVisible(d))
+    .map(d=>({v:d.vorgang,standortId:f.properties.standort_id}));
+  return vorgangBlock(eintraege,vorgaengeOffen("standort"));
 }
 /* Reiner HTML-Bauer fuer den Standort-Body: optionale Themen-Sektion und der
    Meldungs-Verlauf (Story-Karten je sichtbarer Entwicklung). */
@@ -487,7 +549,10 @@ function renderBereich(){
     return truncated(list,FEED_STORY_LIMIT,feedStoryCard,"weitere Artikelketten im Bereich.");
   };
   const klinikenBlock=`<div class="kl-list">${d.order.length?klinikListHTML(d.order):noNewsRow()}</div>`+restNote(d);
-  body.innerHTML=`<div class="subtabs" id="bereichTabs">
+  // Im Bereich sitzt der Block an derselben Stelle wie im Feed, aber ueber den Tabs:
+  // die Zahl in der Pille sagt sofort, ob im Ausschnitt ueberhaupt etwas laeuft.
+  body.innerHTML=vorgangBlock(vorgangList(frozenFeats()),vorgaengeOffen("bereich"))
+    +`<div class="subtabs" id="bereichTabs">
       <button type="button" data-action="set-area-tab" data-tab="feed" class="${tab==="feed"?"on":""}">Artikel</button>
       <button type="button" data-action="set-area-tab" data-tab="kliniken" class="${tab==="kliniken"?"on":""}">Standorte (${fmtNum(d.X)})</button>
     </div>`+(tab==="feed"?storyFeed():klinikenBlock);
@@ -570,6 +635,14 @@ function handlePanelAction(e){
   }else if(action==="zoom-area"){
     e.stopPropagation();
     zoomToBereich();
+  }else if(action==="toggle-vorgaenge"){
+    e.stopPropagation();
+    // Direkt am DOM umschalten statt neu zu rendern: sonst springt der Panel-Scroll.
+    const block=actionEl.closest(".vblock");
+    const offen=block.dataset.open!=="true";
+    block.dataset.open=offen?"true":"false";
+    actionEl.setAttribute("aria-expanded",String(offen));
+    state.vorgaengeOffen=offen;
   }else if(action==="set-area-tab"){
     e.stopPropagation();
     state.bereichTab=actionEl.dataset.tab||"feed";
@@ -612,11 +685,6 @@ function setTopOnly(on){
   commitView({mapSync:"unlessFrozen"});
 }
 function syncTopOnly(){
-  document.querySelectorAll("#topSeg .topseg-opt").forEach(o=>{
-    const on=(o.dataset.top==="top")===state.topOnly;
-    o.classList.toggle("on",on);
-    o.setAttribute("aria-checked",String(on));   // ARIA-Zustand parallel zur .on-Klasse (HX-06)
-  });
   const pill=document.getElementById("topPillMobile");
   if(pill){pill.classList.toggle("on",state.topOnly);pill.setAttribute("aria-checked",String(state.topOnly));}
 }
@@ -628,31 +696,61 @@ function setPersonalienFilter(value){
   state.dossier=null; state.dossierProcessFilters=null;
   commitView({mapSync:"unlessFrozen",closeFilters:true});
 }
-function syncPersonalienFilter(){
-  document.querySelectorAll("#personalienSeg .personalien-opt").forEach(o=>{
-    const on=(o.dataset.personalien||"all")===state.personalienFilter;
-    o.classList.toggle("on",on);
-    o.setAttribute("aria-checked",String(on));
-  });
-  const dot=document.getElementById("dotPersonalien");
-  if(dot)dot.hidden=state.personalienFilter==="all";   // Aktiv-Punkt nur bei Zustand ≠ Default
+/* Reihenfolge des Durchschaltens. "all" ist der Default und damit der Ruhepunkt. */
+const PERSONALIEN_STATES=["all","only","without"];
+const PERSONALIEN_WORT={all:"mit",only:"nur",without:"ohne"};
+/* Welcher Strom ist im jeweiligen Zustand AUS (= durchgestrichen)?
+   pers = Personalien (badge), news = Artikel (newspaper). */
+const PERSONALIEN_OFF={
+  all    :{pers:false,news:false},   // beide Stroeme sichtbar
+  only   :{pers:false,news:true },   // nur Personalien -> Artikel aus
+  without:{pers:true ,news:false}    // ohne Personalien -> Personalien aus
+};
+function cyclePersonalienFilter(){
+  const i=PERSONALIEN_STATES.indexOf(state.personalienFilter);
+  setPersonalienFilter(PERSONALIEN_STATES[(i+1)%PERSONALIEN_STATES.length]);
 }
-function setProcessFilter(value){
-  const next=value||null;
-  if(state.processFilter===next&&!state.dossierProcessFilters)return;
-  state.processFilter=next;
+function syncPersonalienFilter(){
+  const pill=document.getElementById("persPill");
+  if(!pill)return;
+  const s=state.personalienFilter;
+  pill.classList.remove("st-all","st-only","st-without");
+  pill.classList.add("st-"+s);
+  const wort=document.getElementById("persState");
+  if(wort)wort.textContent=PERSONALIEN_WORT[s];
+  const off=PERSONALIEN_OFF[s];
+  pill.querySelector('[data-gi="pers"]').classList.toggle("off",off.pers);
+  pill.querySelector('[data-gi="news"]').classList.toggle("off",off.news);
+  pill.setAttribute("aria-label",`Personalien: ${PERSONALIEN_WORT[s]} — weiterschalten`);
+}
+/* Vorgangstypen sind seit 2026-07-18 gezaehlte Chips und damit frei kombinierbar
+   (gewaehlt als Variante A, siehe varianten/personalien-vorgaenge.html). Leere Auswahl
+   heisst „alle" — es gibt bewusst keinen eigenen „Alle"-Chip, weil das Abwaehlen des
+   letzten Typs schon dorthin zurueckfuehrt. */
+function toggleProcessFilter(typ){
+  if(!typ)return;
+  const aktiv=state.processFilter.slice();
+  const i=aktiv.indexOf(typ);
+  if(i>=0)aktiv.splice(i,1); else aktiv.push(typ);
+  state.processFilter=aktiv;
+  // Manuelle Wahl loest den Dossier-Vorfilter ab; Auswahl und eingefrorener Bereich
+  // bleiben aber stehen — genau wie bei toggleTopic. Beide Chip-Gruppen liegen seit
+  // 2026-07-18 nebeneinander im selben Dropdown und muessen sich gleich anfuehlen.
   state.dossier=null; state.dossierProcessFilters=null;
-  state.selectedId=null; state.frozen=null;
-  commitView({mapSync:"rebuild",closeFilters:true,sheet:"half"});
+  commitView({mapSync:"unlessFrozen"});
 }
 function syncProcessFilter(){
-  document.querySelectorAll("#processSeg .process-opt").forEach(o=>{
-    const on=(o.dataset.process||"") === (state.processFilter||"");
-    o.classList.toggle("on",on);
-    o.setAttribute("aria-checked",String(on));
+  const zahlen=countVorgangTypen();
+  document.querySelectorAll("#processChips .process-chip").forEach(c=>{
+    const typ=c.dataset.process;
+    const on=state.processFilter.includes(typ);
+    c.classList.toggle("on",on);
+    c.setAttribute("aria-pressed",String(on));
+    const n=c.querySelector(".pc-n");
+    if(n)n.textContent=fmtNum(zahlen[typ]??0);
+    // Typ ohne Treffer bleibt sichtbar, aber gedaempft: die 0 ist selbst eine Aussage.
+    c.classList.toggle("leer",(zahlen[typ]??0)===0&&!on);
   });
-  const dot=document.getElementById("dotVorgang");
-  if(dot)dot.hidden=!state.processFilter;   // Aktiv-Punkt nur wenn ein Vorgangstyp gewählt
 }
 
 function setTheme(t){
