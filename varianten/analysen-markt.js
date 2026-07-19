@@ -278,7 +278,7 @@ function famRow(f,med){
   const q=famQuadrant(f,med), z=f.zeit?" z":"";
   const outlook=STATE.ausblick?famOutlookGlyphs(f):"";   // Zusatz-Glyphen nur bei aktivem Ausblick; ohne bleibt die Zeile ruhig
   return `<div class="famrow${STATE.selFamilie===f.key?' sel':''}" data-familie="${f.key}">
-    <div class="fn"><span class="qdot ${q}"></span><span class="fnm">${f.name}</span>${outlook}</div>
+    <div class="fn"><span class="qdot ${q}" title="${QUAD_LABEL[q]} — Wettbewerbsdruck ${druckWort(f.druck)} (P${f.druck}), Ausschöpfung ${Math.round(f.ausschoepfung*100)} %"></span><span class="fnm">${f.name}</span>${outlook}</div>
     <span class="stufe-badge${z}" title="Marktraum: ${f.stufe} Minuten Fahrzeit${f.zeit?' — zeitkritische Leistung':''}">${f.stufe}′</span>
     <span class="fa"><span class="fal">Ausschöpfung </span>${Math.round(f.ausschoepfung*100)} %</span>
     <span class="fg" title="Verteilungslücke: Fälle pro Jahr, die heute Wettbewerber behandeln">−${fmt(Math.max(0,f.verteilungsluecke))}</span></div>`;
@@ -381,7 +381,12 @@ function familieDrilldown(c,f){
       <div class="wbrow" style="color:var(--text-faint);font-size:9.5px;border:none;text-transform:uppercase;letter-spacing:.03em"><span>Haus</span><span>Bevölkerungs-Überlappung</span><span>Angebotsstärke</span><span style="text-align:right">Druck</span></div>
       ${wbRows}
     </div>
-    <div class="chart-foot"><span class="material-symbols-outlined">route</span>Wie stark drückt ein Wettbewerber? Zwei Faktoren, multipliziert: wie viel Bevölkerung er mit dem Haus teilt (Überlappung — hier über die Entfernung angenähert) und wie stark sein eigenes Angebot in dieser Familie ist (aus den Qualitätsberichten). Häuser ohne Angebot üben keinen Druck aus — auf der Karte bleiben sie sichtbar, aber blass.</div>
+    <div class="wb-total">
+      <span class="k">Wettbewerbsdruck der Familie insgesamt</span>
+      <span class="v" style="color:${druckColor(f.druck/100)}">P${f.druck}</span>
+      <span class="w">${druckWort(f.druck)}</span>
+    </div>
+    <div class="chart-foot"><span class="material-symbols-outlined">route</span>Wie stark drückt ein Wettbewerber? Zwei Faktoren, multipliziert: wie viel Bevölkerung er mit dem Haus teilt (Überlappung — hier über die Entfernung angenähert) und wie stark sein eigenes Angebot in dieser Familie ist (aus den Qualitätsberichten). Häuser ohne Angebot üben keinen Druck aus — auf der Karte bleiben sie sichtbar, aber blass. <b>Die Zeilen ergeben in der Summe nicht den Gesamtwert:</b> sie ordnen die Wettbewerber nach ihrem Beitrag, während der Gesamtdruck das bundesweite Perzentil der Familie ist (P${f.druck} = stärker umkämpft als ${f.druck} % der Familien). Er setzt die Familie auf die Querachse des Quadranten oben.</div>
     ${monFamilieBlock(f.key)}
   </section>`;
 }

@@ -371,8 +371,10 @@ body.legend-collapsed .geo-overlay{display:none}
 .divbar-fill{position:absolute;top:2px;bottom:2px;border-radius:3px;min-width:2px}
 .divbar-fill.pos{left:50%}.divbar-fill.neg{right:50%}
 .divrow .bv{text-align:right;font-family:'Manrope';font-weight:800;font-size:12px;font-variant-numeric:tabular-nums}
-.chart-foot{font-size:10.5px;color:var(--text-faint);margin-top:10px;display:flex;align-items:center;gap:6px}
-.chart-foot .material-symbols-outlined{font-size:14px}
+/* Fliesstext, kein Flex: sonst wird jedes <b> im Fusstext zu einem eigenen
+   Flex-Item und der Satz bricht in Spalten statt in Zeilen. */
+.chart-foot{font-size:10.5px;color:var(--text-faint);margin-top:10px;line-height:1.45}
+.chart-foot .material-symbols-outlined{font-size:14px;vertical-align:-3px;margin-right:5px}
 /* Methodik-Notiz (exemplarischer Scatter, einmalig) — als eigener Einschub gerahmt,
    damit sie nicht direkt über dem Diagramm klebt */
 .method{border:1px solid var(--line);border-radius:11px;background:var(--card);padding:11px 13px;margin:0 0 14px}
@@ -636,6 +638,12 @@ html.theme-hell .szen-hist .focus-marker{fill:#000;stroke:#fff}
 .qbub:hover{fill-opacity:.7}
 /* Familien-Liste (sortiert nach Verteilungslücke) */
 .famlist{display:flex;flex-direction:column;gap:3px}
+/* Gesamtdruck unter der Wettbewerbertabelle — Kontextwert, KEINE Spaltensumme
+   (die Zeilenbeitraege ranken nur, das Perzentil kommt aus dem Familien-Katalog). */
+.wb-total{display:flex;align-items:baseline;gap:9px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+.wb-total .k{flex:1;min-width:0;font-size:11px;font-weight:600;color:var(--text-dim)}
+.wb-total .v{font-family:'Manrope';font-weight:800;font-size:19px;font-variant-numeric:tabular-nums}
+.wb-total .w{font-size:11px;font-weight:600;color:var(--text-dim)}
 .famrow{display:grid;grid-template-columns:1fr auto auto auto;gap:9px;align-items:center;cursor:pointer;
   padding:6px 8px;border-radius:8px;border:1px solid transparent;transition:.12s;font-size:11.5px}
 .famrow:hover{background:var(--card);border-color:var(--line)}
