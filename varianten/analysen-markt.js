@@ -278,9 +278,9 @@ function famRow(f,med){
   const q=famQuadrant(f,med), z=f.zeit?" z":"";
   const outlook=STATE.ausblick?famOutlookGlyphs(f):"";   // Zusatz-Glyphen nur bei aktivem Ausblick; ohne bleibt die Zeile ruhig
   return `<div class="famrow${STATE.selFamilie===f.key?' sel':''}" data-familie="${f.key}">
-    <div class="fn"><span class="qdot ${q}"></span>${f.name}${outlook}</div>
+    <div class="fn"><span class="qdot ${q}"></span><span class="fnm">${f.name}</span>${outlook}</div>
     <span class="stufe-badge${z}" title="Marktraum: ${f.stufe} Minuten Fahrzeit${f.zeit?' — zeitkritische Leistung':''}">${f.stufe}′</span>
-    <span class="fa">Ausschöpfung ${Math.round(f.ausschoepfung*100)} %</span>
+    <span class="fa"><span class="fal">Ausschöpfung </span>${Math.round(f.ausschoepfung*100)} %</span>
     <span class="fg" title="Verteilungslücke: Fälle pro Jahr, die heute Wettbewerber behandeln">−${fmt(Math.max(0,f.verteilungsluecke))}</span></div>`;
 }
 function quadrantSection(F,med){

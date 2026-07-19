@@ -283,7 +283,8 @@ body.legend-collapsed .geo-overlay{display:none}
 .mx-dot circle{fill:var(--accent-strong)}
 .mx-50{stroke:var(--text-faint);stroke-width:1;stroke-dasharray:3 3;opacity:.6}
 /* SI als Inline-Chip in der Matrix-Kopfzeile (statt überlappendem Overlay auf der Kurve) */
-.mx-subh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* ponytail: wrap statt Overflow — der SI-Chip rutscht auf schmalen Schirmen in die zweite Zeile */
+.mx-subh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .si-inline{display:inline-flex;align-items:baseline;gap:5px;text-transform:none;letter-spacing:0;flex:none}
 .si-inline .k{font-size:9px;font-weight:700;color:var(--text-faint)}
 .si-inline .v{font-family:'Manrope';font-weight:800;font-size:15px;color:var(--accent-strong)}
@@ -419,6 +420,19 @@ body.legend-collapsed .geo-overlay{display:none}
   .search{position:relative}
   .search input{font-size:16px}
   header{grid-template-columns:auto minmax(0,1fr) auto;height:56px;padding:0 12px}
+  /* Fokussierte Suche zieht sich auf die volle Kopfzeile: Nachbarn klappen animiert weg,
+     die auto-Spalten schrumpfen mit -> die 1fr-Suchspalte waechst weich mit. */
+  .navgroup,.actions{max-width:220px;overflow:hidden;
+    transition:max-width .26s cubic-bezier(.4,0,.2,1),opacity .18s ease,margin .26s cubic-bezier(.4,0,.2,1)}
+  header:has(.search:focus-within) .navgroup,
+  header:has(.search:focus-within) .actions{max-width:0;min-width:0;opacity:0;margin-inline:-5px}
+  /* Kopfzeilen der Analyse-Karten duerfen umbrechen: Titel bekommt die volle Panelbreite,
+     Berichtsjahr-Badge und Icon rutschen rechtsbuendig in die zweite Zeile. */
+  .dimhead{flex-wrap:wrap}
+  .dimhead .ht{flex:1 1 200px;min-width:0}
+  .dimhead .report-badge{margin-left:auto}
+  /* Wortlabel weg — der Prozentwert traegt die Aussage, der Familienname braucht den Platz. */
+  .famrow .fa .fal{display:none}
   .filterbar{left:12px;right:12px;top:60px}
   .stage{position:fixed;inset:0}
   #mapHost{position:absolute;inset:0}
@@ -626,7 +640,9 @@ html.theme-hell .szen-hist .focus-marker{fill:#000;stroke:#fff}
   padding:6px 8px;border-radius:8px;border:1px solid transparent;transition:.12s;font-size:11.5px}
 .famrow:hover{background:var(--card);border-color:var(--line)}
 .famrow.sel{background:var(--chip);border-color:var(--accent)}
-.famrow .fn{color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.famrow .fn{color:var(--text-dim);overflow:hidden;white-space:nowrap;display:flex;align-items:center;gap:8px}
+/* Nur der Name kürzt — die Ausblick-Glyphen dahinter bleiben stehen */
+.famrow .fn .fnm{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .famrow.sel .fn{color:var(--text);font-weight:600}
 .qdot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
 .qdot.kritisch{background:var(--bad)}.qdot.umkaempft{background:var(--accent)}
@@ -672,7 +688,8 @@ html.theme-hell .progress-marker{background:#000;color:#fff;border-color:#fff}
 /* ===== Klinikmonitor — Marktraum-Beobachtung (Eingeloggt-Demo) ===== */
 .mon-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .mon-block{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.mon-market{border-color:color-mix(in srgb,var(--accent) 34%,var(--line));background:linear-gradient(180deg,var(--glow),transparent 72%),var(--card)}
+/* ponytail: nur Rahmenakzent — Hintergrund bleibt wie bei jeder anderen dimcard */
+.mon-market{border-color:color-mix(in srgb,var(--accent) 34%,var(--line))}
 .mon-market .dimhead{margin-bottom:10px}
 /* Prosa-Zusammenfassung + nativer Zeitfenster-Slider (ersetzt die alten Zaehler-Kacheln). */
 .mon-sum{font-size:12px;color:var(--text-dim);margin-top:2px;line-height:1.45}
