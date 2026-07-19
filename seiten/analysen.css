@@ -424,10 +424,13 @@ body.legend-collapsed .geo-overlay{display:none}
   header{grid-template-columns:auto minmax(0,1fr) auto;height:56px;padding:0 12px}
   /* Fokussierte Suche zieht sich auf die volle Kopfzeile: Nachbarn klappen animiert weg,
      die auto-Spalten schrumpfen mit -> die 1fr-Suchspalte waechst weich mit. */
-  .navgroup,.actions{max-width:220px;overflow:hidden;
+  /* overflow:hidden NUR im eingeklappten Zustand — im Ruhezustand wuerde es das
+     Ansichten-Flyout wegschneiden, das absolut unter der 40px hohen .navgroup haengt. */
+  .navgroup,.actions{max-width:220px;
     transition:max-width .26s cubic-bezier(.4,0,.2,1),opacity .18s ease,margin .26s cubic-bezier(.4,0,.2,1)}
   header:has(.search:focus-within) .navgroup,
-  header:has(.search:focus-within) .actions{max-width:0;min-width:0;opacity:0;margin-inline:-5px}
+  header:has(.search:focus-within) .actions{max-width:0;min-width:0;opacity:0;
+    overflow:hidden;pointer-events:none;margin-inline:-5px}
   /* Kopfzeilen der Analyse-Karten duerfen umbrechen: Titel bekommt die volle Panelbreite,
      Berichtsjahr-Badge und Icon rutschen rechtsbuendig in die zweite Zeile. */
   .dimhead{flex-wrap:wrap}
