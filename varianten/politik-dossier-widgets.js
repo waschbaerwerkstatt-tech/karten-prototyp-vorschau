@@ -1,44 +1,8 @@
-/* ---------- Fiktive, konsistente Gruppen-Kennzahlen ----------
-   Deterministisch aus Theme+Gruppe abgeleitet, damit es über Reloads stabil
-   bleibt. Dok·30T summieren je Theme exakt auf t.momentum.count (Largest-Remainder).
-   Mengen- und Stimmungs-Trend sind hash-basierte Prototyp-Werte. */
+/* hash(): deterministischer Streuwert fuer Prototyp-Kennzahlen. Wird von
+   actorDok()/actorTrend() in politik.html gebraucht — nicht loeschen, auch wenn
+   die Gruppen-Kacheln, fuer die es urspruenglich gebaut wurde, entfallen sind. */
 function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function rng(seed,min,max){return min+(hash(seed)%(max-min+1));}
-function docDist(t){
-  // verteilt die sichtbaren Belege proportional zur Akteurszahl auf die beteiligten Gruppen
-  const parts=GROUPS.map(g=>membersOf(t,g.key)).filter(m=>m.length).map(m=>m.length);
-  if(!parts.length) return {};
-  const totalMembers=parts.reduce((a,b)=>a+b,0), total=winAkteure(t).length;
-  const exact=parts.map(n=>total*n/totalMembers);
-  const floor=exact.map(Math.floor);
-  let rem=total-floor.reduce((a,b)=>a+b,0);
-  const order=exact.map((e,i)=>({i,frac:e-Math.floor(e)})).sort((a,b)=>b.frac-a.frac);
-  for(let k=0;k<rem;k++) floor[order[k].i]++;
-  // wieder auf Gruppen-Keys mappen (nur beteiligte)
-  const out={}; let j=0;
-  GROUPS.forEach(g=>{ if(membersOf(t,g.key).length){ out[g.key]=floor[j++]; } });
-  return out;
-}
-function groupMetrics(t,gkey,docs){
-  const seed=t.id+":"+gkey;
-  const total=Math.max(1,winAkteure(t).length);
-  const dok=docs[gkey]||0;
-  const dMenge=Math.min(dok,rng(seed+"#m",0,4)-1); // -1..+3, Anstieg kann den Bestand nicht übersteigen
-  const stim=rng(seed+"#s",0,3)-1;              // -1..+2 -> auf -1/0/+1 klemmen
-  const stimC=stim<0?-1:stim>0?1:0;
-  const anteil=Math.round(dok/total*100);
-  return {dok,dMenge,stim:stimC,anteil};
-}
-function volTrendHtml(d){
-  if(d>0) return `<span class="tr up" title="mehr als Vorperiode">▲${d}</span>`;
-  if(d<0) return `<span class="tr down" title="weniger als Vorperiode">▼${-d}</span>`;
-  return `<span class="tr flat" title="unverändert">±0</span>`;
-}
-function stimTrendHtml(s){
-  if(s>0) return `<span class="stim con" title="Haltung verschärft sich"><span class="material-symbols-outlined">south_east</span>schärfer</span>`;
-  if(s<0) return `<span class="stim pro" title="Haltung wird milder"><span class="material-symbols-outlined">north_east</span>milder</span>`;
-  return `<span class="stim flat" title="Haltung stabil"><span class="material-symbols-outlined">trending_flat</span>stabil</span>`;
-}
+
 function vermutungHtml(v,cls="st-vermutung"){
   if(!v) return "";
   return `<span class="${cls}" title="Vermutung: eigener Layer, nicht als belegte Haltung werten"><span class="material-symbols-outlined">info</span><span><b>Vermutung</b> · <em>${v.achse}: ${v.wert}</em><br>${v.trace}</span></span>`;
@@ -59,57 +23,33 @@ function stanceRow(a){
     </div>`;
 }
 
-/* ---------- Gruppen-Kacheln ---------- */
-function renderTiles(t){
-  // Alle 8 Gruppen in fester Rollen-Reihenfolge; unbeteiligte als ausgegraute Kachel.
-  const docs=docDist(t);
-  let html=`<div class="tilegrid">`;
-  GROUPS.forEach(g=>{
-    const m=membersOf(t,g.key);
-    if(!m.length){
-      html+=`<div class="tile tile-off" aria-disabled="true">
-        <div class="t-top">
-          <span class="t-pos off"><span class="pos-dot"></span></span>
-          <span class="t-label">${g.label}</span>
-        </div>
-        <div class="t-offnote">nicht beteiligt</div>
-      </div>`;
-      return;
-    }
-    const ns=netStats(m);
-    const km=groupMetrics(t,g.key,docs);
-    html+=`<div class="tile" data-gruppe="${g.key}" role="button" tabindex="0" aria-expanded="false">
-        <div class="t-top">
-          <span class="t-pos ${ns.cls}" title="Netto-Haltung: ${NETLABEL[ns.cls]}"><span class="pos-dot"></span></span>
-          <span class="t-label">${g.label}</span>
-          <span class="t-n" title="${m.length} ${m.length===1?"Akteur":"Akteure"}">${m.length}</span>
-          <span class="t-coh ${ns.einig?"einig":"geteilt"}">${ns.einig?"einig":"geteilt"}</span>
-        </div>
-        <div class="t-netline ${ns.cls}">${NETLABEL[ns.cls]}</div>
-        <div class="t-metrics">
-          <div class="met"><span class="mk">Dok·${winLabel()}</span><span class="mv">${km.dok} ${volTrendHtml(km.dMenge)}</span></div>
-          <div class="met"><span class="mk">Anteil</span><span class="mv">${km.anteil}%</span></div>
-          <div class="met"><span class="mk">Stimmung</span><span class="mv">${stimTrendHtml(km.stim)}</span></div>
-        </div>
-      </div>`;
-  });
-  html+=`</div><div class="tilepanel" id="tilepanel"><div class="tp-inner"></div></div>`;
-  return html;
+/* ---------- Akteursliste (ersetzt die Gruppen-Kacheln) ----------
+   Die Akteure stehen flach im Dossier, nach Interessengruppe gegliedert. Die
+   Zwischenueberschrift traegt Gruppenname, Anzahl und Geschlossenheit — die
+   einzige Aggregatgroesse der frueheren Kachel, die aus einer Liste nicht
+   ablesbar ist. Die drei Kachel-Kennzahlen (Dok je Fenster, Anteil, Stimmung)
+   sind mit dem Block entfallen: sie brauchen eine Gruppenebene, die es nicht
+   mehr gibt. Kein Aufklappen mehr — die O-Toene stehen sofort da. */
+function geschlossenheit(members){
+  // Bei genau einem Mitglied ist "einig" eine Nullaussage -> null statt Label.
+  if(members.length<2) return null;
+  const v=members.map(a=>SVAL[a.haltung]);
+  return Math.max(...v)===Math.min(...v)?"einig":"geteilt";
 }
-/* Detailpanel-Inhalt einer Gruppe (O-Töne) */
-function buildPanel(t,gkey){
-  const g=GROUPS.find(x=>x.key===gkey), m=membersOf(t,gkey), ns=netStats(m);
-  const sortedM=[...m].sort((a,b)=>SVAL[a.haltung]-SVAL[b.haltung]);
-  return `<div class="tp-card">
-      <div class="tp-head">
-        <span class="t-pos ${ns.cls}"><span class="pos-dot"></span></span>
-        <span class="tp-title">${g.label}</span>
-        <span class="t-n">${m.length} ${m.length===1?"Akteur":"Akteure"}</span>
-        <span class="tp-net ${ns.cls}">${NETLABEL[ns.cls]}</span>
-        <span class="t-coh ${ns.einig?"einig":"geteilt"}">${ns.einig?"einig":"geteilt"}</span>
-      </div>
-      <div class="tp-stances">${sortedM.map(stanceRow).join("")}</div>
-    </div>`;
+function renderAkteure(t){
+  return GROUPS.map(g=>{
+    const m=membersOf(t,g.key).sort((a,b)=>SVAL[a.haltung]-SVAL[b.haltung]||a.name.localeCompare(b.name));
+    if(!m.length) return "";                       // unbeteiligte Gruppe faellt weg, statt auszugrauen
+    const k=geschlossenheit(m);
+    return `<div class="grpblock">
+        <div class="grphead">
+          <span class="gname">${g.label}</span>
+          <span class="gn">${m.length}</span>
+          ${k?`<span class="gcoh ${k}">${k}</span>`:""}
+        </div>
+        <div class="grpbody">${m.map(stanceRow).join("")}</div>
+      </div>`;
+  }).join("");
 }
 
 /* ---------- Veröffentlichungs-Zeitstrahl ---------- */

@@ -115,7 +115,7 @@ function renderVerfahrenStepper(verfahren, anchorKey){
       <span class="verfahren-state">${esc(verfahren.current)}</span>
     </div>
     <div class="verfahren-svg-wrap" role="img" aria-label="Standardisiertes Gesetzgebungsverfahren">
-      <svg class="verfahren-svg" viewBox="0 0 840 192" aria-hidden="true" focusable="false">
+      <svg class="verfahren-svg" viewBox="-20 0 860 192" aria-hidden="true" focusable="false">
         <line class="verfahren-axis" x1="42" y1="54" x2="798" y2="54"></line>
         <path class="verfahren-branch-line" d="M546 54 C586 76 612 104 612 138"></path>
         <circle class="verfahren-node next" cx="612" cy="138" r="7"></circle>
